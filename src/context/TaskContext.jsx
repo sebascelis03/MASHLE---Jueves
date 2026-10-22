@@ -187,6 +187,18 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
+  const deleteSubject = (subjectId) => {
+    if (!isAdmin) {
+      announce('Solo el administrador puede eliminar materias.', 'assertive');
+      return;
+    }
+    const subj = subjects.find(s => s.id === subjectId);
+    setSubjects(prev => prev.filter(s => s.id !== subjectId));
+    if (subj) {
+      announce(`Materia "${subj.nombre}" eliminada.`, 'assertive');
+    }
+  };
+
   return (
     <TaskContext.Provider value={{
       tasks: currentGroupTasks,
@@ -206,6 +218,7 @@ export const TaskProvider = ({ children }) => {
       updateTaskStatus,
       deleteTask,
       saveSubject,
+      deleteSubject,
       canManageTasks: isAdmin,
       getMyProgress,
       setMyTaskDone,

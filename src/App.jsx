@@ -13,6 +13,7 @@ import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 import { AuthView } from './components/auth/AuthView';
 import { CalendarGrid } from './components/calendar/CalendarGrid';
 import { AgendaView } from './components/calendar/AgendaView';
+import { SubjectsDirectoryView } from './components/subjects/SubjectsDirectoryView';
 import { GroupCommunityView } from './components/community/GroupCommunityView';
 import { GroupAdminPanel } from './components/admin/GroupAdminPanel';
 
@@ -23,6 +24,7 @@ import { SuccessionModal } from './components/admin/SuccessionModal';
 import { 
   Calendar as CalIcon, 
   CheckSquare, 
+  BookOpen,
   Users, 
   ShieldCheck, 
   Plus, 
@@ -63,7 +65,13 @@ const MainLayout = () => {
       if (e.altKey && (e.key === 'l' || e.key === 'L')) {
         e.preventDefault();
         setActiveTab('agenda');
-        announce('Cambiado a vista Lista y Progresión.', 'polite');
+        announce('Cambiado a vista Tablero Scrum y Progresión.', 'polite');
+      }
+      // Alt + M: Vista Materias y WhatsApp
+      if (e.altKey && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault();
+        setActiveTab('subjects');
+        announce('Cambiado a vista Materias y Grupos de WhatsApp.', 'polite');
       }
     };
 
@@ -173,7 +181,21 @@ const MainLayout = () => {
                 className={`nav-tab-btn ${activeTab === 'agenda' ? 'active' : ''}`}
               >
                 <CheckSquare size={18} aria-hidden="true" />
-                <span>Lista & Progresión (Alt+L)</span>
+                <span>Tablero & Lista (Alt+L)</span>
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                id="tab-subjects"
+                aria-selected={activeTab === 'subjects'}
+                aria-controls="panel-subjects"
+                tabIndex={activeTab === 'subjects' ? 0 : -1}
+                onClick={() => handleTabChange('subjects', 'Materias & WhatsApp')}
+                className={`nav-tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
+              >
+                <BookOpen size={18} aria-hidden="true" />
+                <span>Materias & WhatsApp (Alt+M)</span>
               </button>
 
               <button
@@ -229,6 +251,12 @@ const MainLayout = () => {
             {activeTab === 'agenda' && (
               <div role="tabpanel" id="panel-agenda" aria-labelledby="tab-agenda">
                 <AgendaView />
+              </div>
+            )}
+
+            {activeTab === 'subjects' && (
+              <div role="tabpanel" id="panel-subjects" aria-labelledby="tab-subjects">
+                <SubjectsDirectoryView />
               </div>
             )}
 

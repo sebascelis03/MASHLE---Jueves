@@ -1,6 +1,7 @@
-// Servicio de Almacenamiento Local (Offline-first) con datos semilla accesibles y base mock de usuarios
+// Servicio de Almacenamiento Local (Offline-first) para Plataforma Estudiantil Autónoma
 
 const STORAGE_KEYS = {
+  VERSION: 'cal_estudiantil_v2_clean',
   USERS: 'cal_estudiantil_users',
   CURRENT_USER: 'cal_estudiantil_user',
   GROUPS: 'cal_estudiantil_groups',
@@ -10,7 +11,7 @@ const STORAGE_KEYS = {
   USER_PROGRESS: 'cal_estudiantil_user_progress'
 };
 
-// Valores por defecto de accesibilidad (se fusionan con lo guardado para migrar versiones previas)
+// Valores por defecto de accesibilidad
 export const DEFAULT_SETTINGS = {
   altoContraste: false,
   fontSize: 'normal',
@@ -20,179 +21,110 @@ export const DEFAULT_SETTINGS = {
   brillo: 100, // porcentaje 60-140
   lecturaVoz: false, // TTS (Web Speech API)
   sonidos: false, // Retroalimentación auditiva (Web Audio API)
-  alertasVisuales: false, // Toasts para usuarios con discapacidad auditiva
+  alertasVisuales: false, // Toasts visuales para discapacidad auditiva
   onboardingCompletado: false
 };
 
-// Cuentas Mock para pruebas de acceso, roles y sucesión
+// 7 Cuentas Base Oficiales solicitadas por el usuario
 export const MOCK_ACCOUNTS = [
   {
-    id: 'usr-1',
-    nombre: 'Carlos Mendoza',
-    email: 'prueba1@gmail.com',
+    id: 'usr-admin-1',
+    nombre: 'Admin 1',
+    username: 'admin1',
+    email: 'admin1@gmail.com',
     password: '1234',
-    grupoId: 'grp-ingenieria-10a',
+    grupoId: null,
     rol: 'admin',
-    descripcionRol: 'Estudiante Administrador del Grupo 10A (Dueño de los datos del proyecto)'
+    descripcionRol: 'Administrador Estudiantil 1 (Clave: 1234)'
   },
   {
-    id: 'usr-2',
-    nombre: 'Valentina Restrepo',
-    email: 'prueba2@gmail.com',
+    id: 'usr-admin-2',
+    nombre: 'Admin 2',
+    username: 'admin2',
+    email: 'admin2@gmail.com',
     password: '1234',
-    grupoId: 'grp-ingenieria-10a',
+    grupoId: null,
+    rol: 'admin',
+    descripcionRol: 'Administrador Estudiantil 2 (Clave: 1234)'
+  },
+  {
+    id: 'usr-admin-3',
+    nombre: 'Admin 3',
+    username: 'admin3',
+    email: 'admin3@gmail.com',
+    password: '1234',
+    grupoId: null,
+    rol: 'admin',
+    descripcionRol: 'Administrador Estudiantil 3 (Clave: 1234)'
+  },
+  {
+    id: 'usr-user-1',
+    nombre: 'User 1',
+    username: 'user1',
+    email: 'user1@gmail.com',
+    password: '4321',
+    grupoId: null,
     rol: 'estudiante',
-    descripcionRol: 'Estudiante Miembro del Grupo 10A (Para probar permisos y sucesión)'
+    descripcionRol: 'Estudiante Miembro 1 (Clave: 4321)'
   },
   {
-    id: 'usr-5',
-    nombre: 'Sofía Carvajal',
-    email: 'prueba3@gmail.com',
-    password: '1234',
-    grupoId: 'grp-diseno-ux',
-    rol: 'admin',
-    descripcionRol: 'Estudiante Administradora en otra comunidad (Semillero UX)'
+    id: 'usr-user-2',
+    nombre: 'User 2',
+    username: 'user2',
+    email: 'user2@gmail.com',
+    password: '4321',
+    grupoId: null,
+    rol: 'estudiante',
+    descripcionRol: 'Estudiante Miembro 2 (Clave: 4321)'
+  },
+  {
+    id: 'usr-user-3',
+    nombre: 'User 3',
+    username: 'user3',
+    email: 'user3@gmail.com',
+    password: '4321',
+    grupoId: null,
+    rol: 'estudiante',
+    descripcionRol: 'Estudiante Miembro 3 (Clave: 4321)'
+  },
+  {
+    id: 'usr-user-4',
+    nombre: 'User 4',
+    username: 'user4',
+    email: 'user4@gmail.com',
+    password: '4321',
+    grupoId: null,
+    rol: 'estudiante',
+    descripcionRol: 'Estudiante Miembro 4 (Clave: 4321)'
   }
 ];
 
-const SEED_GROUPS = [
-  {
-    id: 'grp-ingenieria-10a',
-    nombre: 'Ingeniería de Software - Grupo 10A',
-    codigoInvitacion: 'SOFT-10A',
-    adminId: 'usr-1',
-    descripcion: 'Grupo oficial de décimo semestre para seguimiento de proyectos y entregas.',
-    solicitudesPendientes: [
-      { id: 'usr-4', nombre: 'Andrés López', email: 'andres.lopez@estudiante.edu' }
-    ],
-    miembros: [
-      { id: 'usr-1', nombre: 'Carlos Mendoza', email: 'prueba1@gmail.com', rol: 'admin' },
-      { id: 'usr-2', nombre: 'Valentina Restrepo', email: 'prueba2@gmail.com', rol: 'estudiante' },
-      { id: 'usr-3', nombre: 'Mateo Gómez', email: 'mateo.gomez@estudiante.edu', rol: 'estudiante' }
-    ]
-  },
-  {
-    id: 'grp-diseno-ux',
-    nombre: 'Diseño de Interfaces & UX - Semillero',
-    codigoInvitacion: 'UX-2026',
-    adminId: 'usr-5',
-    descripcion: 'Comunidad de estudio de diseño centrado en el usuario y accesibilidad digital.',
-    solicitudesPendientes: [],
-    miembros: [
-      { id: 'usr-5', nombre: 'Sofía Carvajal', email: 'prueba3@gmail.com', rol: 'admin' },
-      { id: 'usr-6', nombre: 'David Pinzón', email: 'd.pinzon@estudiante.edu', rol: 'estudiante' }
-    ]
-  }
-];
-
-const SEED_SUBJECTS = [
-  {
-    id: 'mat-accesibilidad',
-    grupoId: 'grp-ingenieria-10a',
-    nombre: 'Accesibilidad Web y WCAG',
-    docente: 'Dra. Elena Ramos',
-    color: '#2563eb',
-    colorAltoContraste: '#60a5fa',
-    whatsappUrl: 'https://chat.whatsapp.com/sample-accesibilidad-web'
-  },
-  {
-    id: 'mat-arquitectura',
-    grupoId: 'grp-ingenieria-10a',
-    nombre: 'Arquitectura de Software PWA',
-    docente: 'Ing. Rodrigo Vega',
-    color: '#7c3aed',
-    colorAltoContraste: '#c084fc',
-    whatsappUrl: 'https://chat.whatsapp.com/sample-arquitectura-pwa'
-  },
-  {
-    id: 'mat-metodologias',
-    grupoId: 'grp-ingenieria-10a',
-    nombre: 'Gestión Ágil y Usabilidad',
-    docente: 'Mg. Laura Sarmiento',
-    color: '#059669',
-    colorAltoContraste: '#34d399',
-    whatsappUrl: 'https://chat.whatsapp.com/sample-gestion-agil'
-  },
-  {
-    id: 'mat-ux-research',
-    grupoId: 'grp-diseno-ux',
-    nombre: 'Investigación con Usuarios',
-    docente: 'Lic. Camilo Torres',
-    color: '#d97706',
-    colorAltoContraste: '#fbbf24',
-    whatsappUrl: 'https://chat.whatsapp.com/sample-ux-research'
-  }
-];
-
-const now = new Date();
-const currentYear = now.getFullYear();
-const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
-const pad = (n) => String(n).padStart(2, '0');
-
-const SEED_TASKS = [
-  {
-    id: 'tsk-1',
-    grupoId: 'grp-ingenieria-10a',
-    materiaId: 'mat-accesibilidad',
-    titulo: 'Auditoría de Lectores de Pantalla (NVDA & Narrador)',
-    descripcion: 'Evaluar etiquetas ARIA, navegación por teclas Tab, contraste 7:1 y focus traps en modales de la PWA.',
-    fechaEntrega: `${currentYear}-${currentMonth}-${pad(Math.min(10, 28))}`,
-    horaEntrega: '23:59',
-    estado: 'en_progreso',
-    prioridad: 'alta',
-    creadorId: 'usr-1'
-  },
-  {
-    id: 'tsk-2',
-    grupoId: 'grp-ingenieria-10a',
-    materiaId: 'mat-arquitectura',
-    titulo: 'Configuración de Service Worker y Manifest PWA',
-    descripcion: 'Garantizar que la aplicación cargue en modo sin conexión (offline) y sea instalable en Android, Windows y macOS.',
-    fechaEntrega: `${currentYear}-${currentMonth}-${pad(Math.min(15, 28))}`,
-    horaEntrega: '18:00',
-    estado: 'pendiente',
-    prioridad: 'media',
-    creadorId: 'usr-2'
-  },
-  {
-    id: 'tsk-3',
-    grupoId: 'grp-ingenieria-10a',
-    materiaId: 'mat-metodologias',
-    titulo: 'Entrega de Prototipo de Sucesión de Administrador',
-    descripcion: 'Diseñar el flujo de prevención de errores y selección de sucesor cuando el administrador sale del grupo.',
-    fechaEntrega: `${currentYear}-${currentMonth}-${pad(Math.min(5, 28))}`,
-    horaEntrega: '12:00',
-    estado: 'finalizada',
-    prioridad: 'alta',
-    creadorId: 'usr-1'
-  },
-  {
-    id: 'tsk-4',
-    grupoId: 'grp-ingenieria-10a',
-    materiaId: 'mat-accesibilidad',
-    titulo: 'Verificación de Daltonismo y Señalética Visual',
-    descripcion: 'Confirmar que ningún estado dependa exclusivamente de rojo o verde; incluir iconos claros y etiquetas de texto.',
-    fechaEntrega: `${currentYear}-${currentMonth}-${pad(Math.min(22, 28))}`,
-    horaEntrega: '20:00',
-    estado: 'pendiente',
-    prioridad: 'baja',
-    creadorId: 'usr-1'
-  }
-];
+// Los grupos inician limpios para que el usuario los cree desde la app
+const SEED_GROUPS = [];
+const SEED_SUBJECTS = [];
+const SEED_TASKS = [];
 
 export const storageService = {
   init() {
-    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+    // Migración limpia a versión 2 (limpiar usuarios antiguos y grupos precargados)
+    const currentVersion = localStorage.getItem(STORAGE_KEYS.VERSION);
+    if (!currentVersion || currentVersion !== 'v2') {
+      localStorage.setItem(STORAGE_KEYS.VERSION, 'v2');
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(MOCK_ACCOUNTS));
-    } else {
-      // Asegurar que la cuenta referenciada prueba1@gmail.com siempre esté presente
-      const existingUsers = JSON.parse(localStorage.getItem(STORAGE_KEYS.USERS));
-      const hasPrueba1 = existingUsers.some(u => u.email.toLowerCase() === 'prueba1@gmail.com');
-      if (!hasPrueba1) {
-        localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify([...MOCK_ACCOUNTS, ...existingUsers]));
+      localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(SEED_GROUPS));
+      localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(SEED_SUBJECTS));
+      localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(SEED_TASKS));
+      // Si el usuario actual era de los antiguos pruebaX, desconectar para login fresco
+      const currentUser = this.getCurrentUser();
+      if (currentUser && currentUser.email?.includes('prueba')) {
+        this.logout();
       }
+      return;
     }
 
+    if (!localStorage.getItem(STORAGE_KEYS.USERS)) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(MOCK_ACCOUNTS));
+    }
     if (!localStorage.getItem(STORAGE_KEYS.GROUPS)) {
       localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(SEED_GROUPS));
     }
@@ -218,18 +150,35 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
   },
 
-  // Autenticación Mock
-  login(email, password) {
+  updateUser(updatedUser) {
+    if (!updatedUser?.id) return;
     const users = this.getUsers();
-    const cleanEmail = email.trim().toLowerCase();
-    const user = users.find(u => u.email.toLowerCase() === cleanEmail);
+    const nextUsers = users.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u);
+    this.saveUsers(nextUsers);
+  },
+
+  // Autenticación: Permite ingresar con 'admin1', 'admin1@gmail.com', 'user1', etc.
+  login(identifier, password) {
+    const users = this.getUsers();
+    const clean = identifier.trim().toLowerCase();
+
+    const user = users.find(u => {
+      const uEmail = (u.email || '').toLowerCase();
+      const uUsername = (u.username || '').toLowerCase();
+      return (
+        uEmail === clean ||
+        uUsername === clean ||
+        (!clean.includes('@') && uEmail === `${clean}@gmail.com`) ||
+        (clean.endsWith('@gmail.com') && uUsername === clean.replace('@gmail.com', ''))
+      );
+    });
 
     if (!user) {
-      throw new Error('No existe una cuenta registrada con este correo electrónico.');
+      throw new Error(`No existe usuario con el identificador "${identifier}". Prueba con admin1, admin2, user1, etc.`);
     }
 
     if (user.password !== password) {
-      throw new Error('Contraseña incorrecta. Inténtalo de nuevo.');
+      throw new Error('Contraseña incorrecta. Recuerda: admins usan 1234 y users usan 4321.');
     }
 
     // Guardar usuario en sesión
@@ -239,16 +188,19 @@ export const storageService = {
 
   register({ email, password, nombre }) {
     const users = this.getUsers();
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanInput = email.trim().toLowerCase();
+    const normalizedEmail = cleanInput.includes('@') ? cleanInput : `${cleanInput}@gmail.com`;
+    const username = cleanInput.replace('@gmail.com', '');
 
-    if (users.some(u => u.email.toLowerCase() === cleanEmail)) {
-      throw new Error('Ya existe una cuenta con este correo institucional.');
+    if (users.some(u => (u.email || '').toLowerCase() === normalizedEmail || (u.username || '').toLowerCase() === username)) {
+      throw new Error('Ya existe una cuenta con este nombre de usuario o correo.');
     }
 
     const newUser = {
       id: `usr-${Date.now()}`,
-      nombre: nombre?.trim() || cleanEmail.split('@')[0],
-      email: cleanEmail,
+      nombre: nombre?.trim() || username,
+      username: username,
+      email: normalizedEmail,
       password: password,
       grupoId: null, // Inicia sin grupo asignado
       rol: 'estudiante',
@@ -323,6 +275,20 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
   },
 
+  // Progreso y notas individuales por estudiante
+  // Clave: cal_estudiantil_user_progress -> { "[userId]_[taskId]": { realizada: boolean, notasPersonales: string, fechaActualizacion: string } }
+  getUserProgress() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_PROGRESS)) || {};
+    } catch {
+      return {};
+    }
+  },
+
+  saveUserProgress(progressMap) {
+    localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(progressMap));
+  },
+
   getSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS));
@@ -334,31 +300,5 @@ export const storageService = {
 
   saveSettings(settings) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  },
-
-  // Mantiene la base mock de usuarios sincronizada con el grupo/rol actual del estudiante
-  updateUser(user) {
-    if (!user) return;
-    const users = this.getUsers();
-    const exists = users.some(u => u.id === user.id);
-    const next = exists
-      ? users.map(u => (u.id === user.id ? { ...u, ...user } : u))
-      : [...users, user];
-    this.saveUsers(next);
-  },
-
-  // Seguimiento individual por tarea:
-  // { "[userId]_[taskId]": { realizada: boolean, notasPersonales: string, fechaActualizacion: string } }
-  getUserProgress() {
-    try {
-      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_PROGRESS));
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-      return {};
-    }
-  },
-
-  saveUserProgress(progress) {
-    localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(progress));
   }
 };

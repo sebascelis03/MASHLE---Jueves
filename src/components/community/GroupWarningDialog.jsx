@@ -1,7 +1,7 @@
 import React from 'react';
 import { FocusTrap } from '../a11y/FocusTrap';
 import { useAuthGroup } from '../../context/AuthGroupContext';
-import { AlertTriangle, LogOut, ArrowRight, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, X } from 'lucide-react';
 
 export const GroupWarningDialog = () => {
   const { 

@@ -15,10 +15,12 @@ const AuthGroupContext = createContext();
 const resolveUserMembership = (user, groupsList) => {
   if (!user) return null;
   const group = groupsList.find(g => g.miembros.some(m => m.id === user.id));
+  const member = group ? group.miembros.find(m => m.id === user.id) : null;
+  const isUserAdmin = Boolean(group && (group.adminId === user.id || member?.rol === 'admin'));
   return {
     ...user,
     grupoId: group ? group.id : null,
-    rol: group && group.adminId === user.id ? 'admin' : 'estudiante'
+    rol: isUserAdmin ? 'admin' : 'estudiante'
   };
 };
 
@@ -107,7 +109,9 @@ export const AuthGroupProvider = ({ children }) => {
 
   /* ------------------------------ Grupo actual ----------------------------- */
   const currentGroup = groups.find(g => g.id === currentUser?.grupoId) || null;
-  const isAdmin = Boolean(currentGroup && currentGroup.adminId === currentUser?.id);
+  const currentMember = currentGroup?.miembros?.find(m => m.id === currentUser?.id);
+  const isPrimaryAdmin = Boolean(currentGroup && currentGroup.adminId === currentUser?.id);
+  const isAdmin = Boolean(currentGroup && (isPrimaryAdmin || currentMember?.rol === 'admin'));
 
   const buildNewGroup = ({ nombre, descripcion, codigoInvitacion }) => ({
     id: `grp-${Date.now()}`,
@@ -321,6 +325,34 @@ export const AuthGroupProvider = ({ children }) => {
     announce('Solicitud rechazada.', 'polite');
   };
 
+  // Alternar privilegios de administrador para un compañero de grupo
+  const toggleMemberAdminRole = (memberId) => {
+    if (!currentGroup || !isAdmin) return;
+    if (memberId === currentGroup.adminId) {
+      announce('No puedes cambiar los permisos del creador principal del grupo.', 'assertive');
+      return;
+    }
+    const target = currentGroup.miembros.find(m => m.id === memberId);
+    if (!target) return;
+
+    const willBeAdmin = target.rol !== 'admin';
+    const nextGroups = groups.map(g => {
+      if (g.id !== currentGroup.id) return g;
+      return {
+        ...g,
+        miembros: g.miembros.map(m => (m.id === memberId ? { ...m, rol: willBeAdmin ? 'admin' : 'estudiante' } : m))
+      };
+    });
+
+    setGroups(nextGroups);
+    announce(
+      willBeAdmin
+        ? `${target.nombre} ahora tiene privilegios de Administrador en el grupo.`
+        : `Se han removido los privilegios de Administrador a ${target.nombre}.`,
+      'polite'
+    );
+  };
+
   // Grupo "destino" que se muestra en los diálogos de advertencia
   const pendingGroupSwitch =
     pendingAction?.type === 'join'
@@ -340,6 +372,8 @@ export const AuthGroupProvider = ({ children }) => {
       currentGroup,
       groups,
       isAdmin,
+      isPrimaryAdmin,
+      toggleMemberAdminRole,
       requestJoinGroup,
       createNewGroup,
       requestLeaveGroup,

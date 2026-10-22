@@ -1,21 +1,20 @@
 import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useTasks } from '../../context/TaskContext';
-import { useA11y } from '../../context/A11yContext';
-import { Shield, UserPlus, Users, MessageCircle, Plus, Check, X, Crown, LogOut } from 'lucide-react';
+import { Shield, UserPlus, Users, MessageCircle, Plus, Check, X, Crown } from 'lucide-react';
 
 export const GroupAdminPanel = () => {
   const { 
     currentGroup, 
-    isAdmin, 
+    isAdmin,
+    isPrimaryAdmin,
+    toggleMemberAdminRole,
     approveJoinRequest, 
     rejectJoinRequest, 
-    setIsSuccessionModalOpen,
-    transferAdminRoleAndLeave
+    setIsSuccessionModalOpen
   } = useAuthGroup();
 
   const { subjects, saveSubject } = useTasks();
-  const { announce } = useA11y();
 
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectDocente, setNewSubjectDocente] = useState('');
@@ -27,9 +26,9 @@ export const GroupAdminPanel = () => {
     return (
       <div className="card" role="status" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
         <Shield size={36} color="#94a3b8" style={{ marginBottom: '0.75rem' }} />
-        <h2 style={{ fontSize: '1.25rem' }}>Panel Reservado para el Administrador del Grupo</h2>
+        <h2 style={{ fontSize: '1.25rem' }}>Panel Reservado para Administradores del Grupo</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '450px', margin: '0.5rem auto 0' }}>
-          Actualmente eres un estudiante miembro en esta comunidad escolar. Solo el administrador asignado puede gestionar solicitudes, miembros y configuración de materias.
+          Actualmente eres un estudiante miembro en esta comunidad escolar. Los administradores pueden gestionar miembros, solicitudes y materias.
         </p>
       </div>
     );
@@ -69,15 +68,17 @@ export const GroupAdminPanel = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setIsSuccessionModalOpen(true)}
-            className="btn btn-sm btn-secondary"
-            aria-label="Ceder administración de este grupo"
-          >
-            <Crown size={15} aria-hidden="true" />
-            <span>Ceder Rol de Administrador</span>
-          </button>
+          {isPrimaryAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsSuccessionModalOpen(true)}
+              className="btn btn-sm btn-secondary"
+              aria-label="Ceder administración principal de este grupo"
+            >
+              <Crown size={15} aria-hidden="true" />
+              <span>Ceder Liderazgo Principal</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -130,7 +131,7 @@ export const GroupAdminPanel = () => {
           )}
         </div>
 
-        {/* Miembros Actuales */}
+        {/* Miembros Actuales y Asignación de Roles */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <Users size={18} color="#10b981" aria-hidden="true" />
@@ -140,34 +141,43 @@ export const GroupAdminPanel = () => {
           </div>
 
           <div className="members-list">
-            {currentGroup.miembros?.map(member => (
-              <div key={member.id} className="member-item">
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <strong>{member.nombre}</strong>
-                    {member.rol === 'admin' && (
-                      <span className="badge badge-pending" style={{ fontSize: '0.7rem' }}>
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{member.email}</div>
-                </div>
+            {currentGroup.miembros?.map(member => {
+              const isOwner = member.id === currentGroup.adminId;
+              const isMemberAdmin = isOwner || member.rol === 'admin';
 
-                {member.rol !== 'admin' && (
-                  <button
-                    type="button"
-                    onClick={() => transferAdminRoleAndLeave(member.id)}
-                    className="btn btn-sm btn-secondary"
-                    aria-label={`Transferir rol de administrador a ${member.nombre}`}
-                    title="Ceder administración a este miembro"
-                  >
-                    <Crown size={13} aria-hidden="true" />
-                    <span>Hacer Admin</span>
-                  </button>
-                )}
-              </div>
-            ))}
+              return (
+                <div key={member.id} className="member-item">
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <strong>{member.nombre}</strong>
+                      {isOwner ? (
+                        <span className="badge badge-pending" style={{ fontSize: '0.68rem', background: '#eab308', color: '#000', fontWeight: 700 }}>
+                          👑 Creador
+                        </span>
+                      ) : isMemberAdmin ? (
+                        <span className="badge badge-pending" style={{ fontSize: '0.68rem' }}>
+                          🛡️ Admin
+                        </span>
+                      ) : null}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{member.email}</div>
+                  </div>
+
+                  {isPrimaryAdmin && !isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => toggleMemberAdminRole(member.id)}
+                      className={`btn btn-sm ${isMemberAdmin ? 'btn-secondary' : 'btn-primary'}`}
+                      aria-label={isMemberAdmin ? `Quitar administrador a ${member.nombre}` : `Hacer administrador a ${member.nombre}`}
+                      title={isMemberAdmin ? "Remover permisos de admin" : "Dar permisos de admin"}
+                    >
+                      <Crown size={13} aria-hidden="true" />
+                      <span>{isMemberAdmin ? 'Quitar Admin' : 'Hacer Co-Admin'}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

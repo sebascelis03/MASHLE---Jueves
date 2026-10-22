@@ -1,31 +1,43 @@
 import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useA11y } from '../../context/A11yContext';
-import { LogIn, UserPlus, GraduationCap, Eye, EyeOff, AlertCircle, Key, Mail, User, ShieldCheck } from 'lucide-react';
+import { LogIn, UserPlus, GraduationCap, Eye, EyeOff, AlertCircle, Key, User, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export const AuthView = () => {
   const { login, register, mockAccounts } = useAuthGroup();
   const { announce } = useA11y();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [nombre, setNombre] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const handleTabChange = (newMode) => {
     setMode(newMode);
     setErrorMsg('');
+    setSuccessMsg('');
     announce(newMode === 'login' ? 'Formulario de inicio de sesión activo.' : 'Formulario de registro estudiantil activo.', 'polite');
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
 
     if (mode === 'login') {
-      const res = login(email, password);
+      if (!identifier.trim()) {
+        setErrorMsg('Por favor escribe tu usuario o correo electrónico.');
+        return;
+      }
+      if (!password) {
+        setErrorMsg('Por favor ingresa tu contraseña.');
+        return;
+      }
+      const res = login(identifier.trim(), password);
       if (!res.success) {
         setErrorMsg(res.error);
       }
@@ -34,19 +46,34 @@ export const AuthView = () => {
         setErrorMsg('Por favor escribe tu nombre completo.');
         return;
       }
-      const res = register({ email, password, nombre });
+      if (!identifier.trim()) {
+        setErrorMsg('Por favor define tu nombre de usuario o correo.');
+        return;
+      }
+      if (password.length < 4) {
+        setErrorMsg('La contraseña debe tener al menos 4 caracteres.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg('Las contraseñas no coinciden. Verifícalas.');
+        return;
+      }
+      const res = register({ email: identifier.trim(), password, nombre: nombre.trim() });
       if (!res.success) {
         setErrorMsg(res.error);
+      } else {
+        setSuccessMsg('¡Cuenta creada exitosamente! Iniciando sesión...');
       }
     }
   };
 
   const handleQuickFill = (acc) => {
-    setEmail(acc.email);
+    setIdentifier(acc.username || acc.email);
     setPassword(acc.password);
     setMode('login');
     setErrorMsg('');
-    announce(`Campos autocompletados con la cuenta ${acc.nombre}. Puedes iniciar sesión.`, 'polite');
+    setSuccessMsg('');
+    announce(`Cuenta seleccionada: ${acc.nombre} (${acc.username}). Haz clic en Ingresar.`, 'polite');
   };
 
   return (
@@ -59,7 +86,7 @@ export const AuthView = () => {
           </div>
           <h1 className="auth-title">Calendario Estudiantil</h1>
           <p className="auth-subtitle">
-            Plataforma inclusiva y accesible para comunidades escolares
+            Plataforma inclusiva y accesible para la autogestión y organización entre estudiantes
           </p>
         </div>
 
@@ -103,6 +130,18 @@ export const AuthView = () => {
           </div>
         )}
 
+        {/* Mensaje de Éxito */}
+        {successMsg && (
+          <div 
+            className="badge badge-completed" 
+            role="status" 
+            style={{ padding: '0.65rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}
+          >
+            <CheckCircle2 size={18} aria-hidden="true" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
         {/* Formulario Principal */}
         <form onSubmit={handleSubmit} className="auth-form" id={mode === 'login' ? 'panel-login-form' : 'panel-register-form'} role="tabpanel">
           {mode === 'register' && (
@@ -116,7 +155,7 @@ export const AuthView = () => {
                   id="auth-nombre-input"
                   type="text"
                   className="input with-icon"
-                  placeholder="Ej. Carlos Mendoza"
+                  placeholder="Ej. Mateo Gómez"
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
                   autoComplete="name"
@@ -128,18 +167,18 @@ export const AuthView = () => {
 
           <div className="form-group">
             <label htmlFor="auth-email-input" className="label">
-              <span>Correo Electrónico Institucional *</span>
+              <span>{mode === 'login' ? 'Usuario o Correo *' : 'Usuario o Correo Deseado *'}</span>
             </label>
             <div className="input-with-icon">
-              <Mail size={16} className="input-icon" aria-hidden="true" />
+              <User size={16} className="input-icon" aria-hidden="true" />
               <input
                 id="auth-email-input"
-                type="email"
+                type="text"
                 className="input with-icon"
-                placeholder="ejemplo: prueba1@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
+                placeholder={mode === 'login' ? 'Ej. admin1 o user1 (con o sin @gmail.com)' : 'Ej. juan2026 o juan@gmail.com'}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username"
                 required
               />
             </div>
@@ -155,7 +194,7 @@ export const AuthView = () => {
                 id="auth-password-input"
                 type={showPassword ? 'text' : 'password'}
                 className="input with-icon with-eye"
-                placeholder="Ingresa tu contraseña (ej. 1234)"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -172,6 +211,27 @@ export const AuthView = () => {
               </button>
             </div>
           </div>
+
+          {mode === 'register' && (
+            <div className="form-group">
+              <label htmlFor="auth-confirm-password" className="label">
+                <span>Confirmar Contraseña *</span>
+              </label>
+              <div className="input-with-icon">
+                <Key size={16} className="input-icon" aria-hidden="true" />
+                <input
+                  id="auth-confirm-password"
+                  type={showPassword ? 'text' : 'password'}
+                  className="input with-icon"
+                  placeholder="Repite la contraseña"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
+                  required
+                />
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -196,10 +256,10 @@ export const AuthView = () => {
         <div className="mock-accounts-section" role="region" aria-label="Cuentas de prueba para desarrollo y demostración">
           <div className="mock-accounts-title">
             <ShieldCheck size={16} color="#38bdf8" aria-hidden="true" />
-            <span>Cuentas de Prueba Disponibles (Mocks)</span>
+            <span>7 Cuentas de Acceso Rápido</span>
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 0.75rem' }}>
-            Haz clic en cualquiera para autocompletar y probar los distintos roles y permisos:
+            Haz clic en cualquiera para autocompletar e ingresar de inmediato:
           </p>
 
           <div className="mock-list">
@@ -209,16 +269,13 @@ export const AuthView = () => {
                 type="button"
                 onClick={() => handleQuickFill(acc)}
                 className="mock-item-btn"
-                aria-label={`Usar cuenta de prueba de ${acc.nombre}, correo ${acc.email}`}
+                aria-label={`Usar cuenta ${acc.nombre}, usuario ${acc.username}, clave ${acc.password}`}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <strong style={{ color: 'var(--text-main)' }}>{acc.nombre}</strong>
+                  <strong style={{ color: 'var(--text-main)' }}>{acc.nombre} ({acc.username})</strong>
                   <span className={`badge ${acc.rol === 'admin' ? 'badge-pending' : 'badge-progress'}`} style={{ fontSize: '0.68rem' }}>
-                    {acc.rol === 'admin' ? '👑 Admin' : '🎒 Estudiante'}
+                    {acc.rol === 'admin' ? '👑 Admin (Clave: 1234)' : '🎒 User (Clave: 4321)'}
                   </span>
-                </div>
-                <div style={{ fontSize: '0.78rem', color: 'var(--primary-500)', marginTop: '2px' }}>
-                  {acc.email} · Clave: {acc.password}
                 </div>
                 <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                   {acc.descripcionRol}
@@ -238,7 +295,7 @@ export const AuthView = () => {
           padding: 2rem 1rem;
         }
         .auth-card {
-          max-width: 480px;
+          max-width: 520px;
           width: 100%;
           border: 1.5px solid var(--border-normal);
           border-radius: var(--radius-xl);
@@ -251,24 +308,25 @@ export const AuthView = () => {
           margin-bottom: 1.5rem;
         }
         .auth-logo-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(59, 130, 246, 0.15);
           width: 64px;
           height: 64px;
           border-radius: var(--radius-lg);
+          background: rgba(59, 130, 246, 0.12);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           margin-bottom: 0.75rem;
         }
         .auth-title {
-          font-size: 1.5rem;
-          margin: 0;
-          color: var(--text-main);
+          font-size: 1.6rem;
+          margin: 0 0 0.35rem;
+          letter-spacing: -0.02em;
         }
         .auth-subtitle {
-          font-size: 0.88rem;
           color: var(--text-muted);
-          margin: 0.35rem 0 0;
+          font-size: 0.92rem;
+          margin: 0;
+          line-height: 1.4;
         }
         .auth-tabs {
           display: grid;
@@ -283,16 +341,16 @@ export const AuthView = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 0.4rem;
-          padding: 0.55rem;
-          border-radius: var(--radius-sm);
+          gap: 0.5rem;
+          padding: 0.65rem;
           border: none;
           background: transparent;
-          color: var(--text-secondary);
-          font-weight: 600;
+          color: var(--text-muted);
           font-size: 0.88rem;
+          font-weight: 600;
+          border-radius: var(--radius-sm);
           cursor: pointer;
-          transition: all var(--transition-fast);
+          transition: background-color var(--transition-fast), color var(--transition-fast);
         }
         .auth-tab-btn.active {
           background-color: var(--bg-surface);
@@ -300,25 +358,19 @@ export const AuthView = () => {
           box-shadow: var(--shadow-sm);
         }
         .auth-error-box {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
           background-color: rgba(239, 68, 68, 0.15);
           border: 1px solid #ef4444;
-          color: #f87171;
-          padding: 0.65rem 0.85rem;
+          color: #fca5a5;
+          padding: 0.75rem 1rem;
           border-radius: var(--radius-md);
-          font-size: 0.85rem;
-          margin-bottom: 1rem;
-        }
-        .auth-form {
           display: flex;
-          flex-direction: column;
-          gap: 1rem;
+          align-items: center;
+          gap: 0.6rem;
+          font-size: 0.88rem;
+          margin-bottom: 1.25rem;
         }
         .form-group {
-          display: flex;
-          flex-direction: column;
+          margin-bottom: 1rem;
         }
         .input-with-icon {
           position: relative;
@@ -328,11 +380,12 @@ export const AuthView = () => {
         .input-icon {
           position: absolute;
           left: 0.85rem;
-          color: var(--text-secondary);
+          color: var(--text-muted);
           pointer-events: none;
         }
         .input.with-icon {
-          padding-left: 2.35rem;
+          padding-left: 2.5rem;
+          width: 100%;
         }
         .input.with-eye {
           padding-right: 2.5rem;
@@ -342,17 +395,22 @@ export const AuthView = () => {
           right: 0.75rem;
           background: transparent;
           border: none;
-          color: var(--text-secondary);
+          color: var(--text-muted);
           cursor: pointer;
+          padding: 0.25rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 0.2rem;
+        }
+        .btn-eye:hover {
+          color: var(--text-main);
         }
         .btn-submit-auth {
-          margin-top: 0.5rem;
+          width: 100%;
+          justify-content: center;
           padding: 0.75rem;
-          font-size: 0.95rem;
+          margin-top: 0.5rem;
+          font-size: 1rem;
         }
         .mock-accounts-section {
           margin-top: 1.5rem;
@@ -362,8 +420,8 @@ export const AuthView = () => {
         .mock-accounts-title {
           display: flex;
           align-items: center;
-          gap: 0.4rem;
-          font-size: 0.88rem;
+          gap: 0.5rem;
+          font-size: 0.9rem;
           font-weight: 700;
           color: var(--text-main);
           margin-bottom: 0.35rem;
@@ -372,19 +430,23 @@ export const AuthView = () => {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          max-height: 220px;
+          overflow-y: auto;
+          padding-right: 4px;
         }
         .mock-item-btn {
+          width: 100%;
           text-align: left;
           background-color: var(--bg-surface-elevated);
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-md);
-          padding: 0.65rem 0.85rem;
+          padding: 0.55rem 0.75rem;
           cursor: pointer;
-          transition: border-color var(--transition-fast), background-color var(--transition-fast);
+          transition: background-color var(--transition-fast), border-color var(--transition-fast);
         }
         .mock-item-btn:hover {
-          border-color: var(--border-focus);
           background-color: var(--bg-surface-hover);
+          border-color: var(--border-focus);
         }
       `}</style>
     </div>
