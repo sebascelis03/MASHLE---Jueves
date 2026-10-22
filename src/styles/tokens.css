@@ -1,0 +1,167 @@
+/* ==========================================================================
+   DESIGN TOKENS - CALENDARIO ESTUDIANTIL ACCESIBLE & USABLE
+   Cumplimiento WCAG 2.1 AA / AAA - Contrastes Optimizados
+   ========================================================================== */
+
+:root {
+  /* Tipografía */
+  --font-family-base: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-family-display: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  
+  /* Escala de texto base */
+  --font-size-root: 16px;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+  
+  /* Espaciado */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  
+  /* Bordes y Radios */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Transiciones y Sombras */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 20px 40px rgba(0, 0, 0, 0.6);
+  
+  /* Enfoque Accesible Universal (Focus Ring WCAG 2.4.7) */
+  --focus-ring-color: #38bdf8;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 3px;
+  --focus-ring: var(--focus-ring-width) solid var(--focus-ring-color);
+
+  /* Tema Estándar (Dark Premium por Defecto) */
+  --bg-app: #090d16;
+  --bg-surface: #111827;
+  --bg-surface-elevated: #1f293d;
+  --bg-surface-hover: #28354f;
+  --bg-surface-subtle: rgba(255, 255, 255, 0.04);
+  
+  --border-subtle: #1f2937;
+  --border-normal: #374151;
+  --border-focus: #38bdf8;
+  
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-inverted: #090d16;
+  
+  /* Colores de Marca y Acento */
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-glow: rgba(59, 130, 246, 0.25);
+  
+  --accent-purple: #8b5cf6;
+  --accent-cyan: #06b6d4;
+
+  /* Estados de Tarea (Colores accesibles + combinación con iconos/patrones) */
+  --status-pending-bg: rgba(245, 158, 11, 0.15);
+  --status-pending-border: #f59e0b;
+  --status-pending-text: #fef3c7;
+  --status-pending-solid: #d97706;
+
+  --status-progress-bg: rgba(59, 130, 246, 0.15);
+  --status-progress-border: #3b82f6;
+  --status-progress-text: #dbeafe;
+  --status-progress-solid: #2563eb;
+
+  --status-completed-bg: rgba(16, 185, 129, 0.15);
+  --status-completed-border: #10b981;
+  --status-completed-text: #d1fae5;
+  --status-completed-solid: #059669;
+
+  /* WhatsApp Marca */
+  --whatsapp-color: #25d366;
+  --whatsapp-bg: #075e54;
+  --whatsapp-text: #ffffff;
+  --whatsapp-border: #25d366;
+}
+
+/* Modificador: Escala de Fuente Agrandada (Accesibilidad visual) */
+html[data-font-size="large"] {
+  --font-size-root: 18px;
+}
+
+html[data-font-size="xlarge"] {
+  --font-size-root: 20px;
+}
+
+/* Modo Alto Contraste (WCAG AAA - Ultra Claridad) */
+html[data-contrast="high"] {
+  --bg-app: #000000;
+  --bg-surface: #0a0a0a;
+  --bg-surface-elevated: #141414;
+  --bg-surface-hover: #222222;
+  --bg-surface-subtle: #111111;
+  
+  --border-subtle: #ffffff;
+  --border-normal: #ffffff;
+  --border-focus: #facc15;
+  
+  --text-main: #ffffff;
+  --text-muted: #fffffe;
+  --text-secondary: #fef08a;
+  --text-inverted: #000000;
+  
+  --primary-500: #facc15; /* Amarillo de alto contraste */
+  --primary-600: #eab308;
+  --primary-700: #ca8a04;
+  --primary-glow: rgba(250, 204, 21, 0.4);
+
+  --focus-ring-color: #facc15;
+  --focus-ring-width: 4px;
+  --focus-ring-offset: 4px;
+
+  /* Estados con contraste máximo */
+  --status-pending-bg: #000000;
+  --status-pending-border: #facc15;
+  --status-pending-text: #facc15;
+  --status-pending-solid: #facc15;
+
+  --status-progress-bg: #000000;
+  --status-progress-border: #38bdf8;
+  --status-progress-text: #38bdf8;
+  --status-progress-solid: #38bdf8;
+
+  --status-completed-bg: #000000;
+  --status-completed-border: #4ade80;
+  --status-completed-text: #4ade80;
+  --status-completed-solid: #4ade80;
+
+  --whatsapp-color: #4ade80;
+  --whatsapp-bg: #000000;
+  --whatsapp-text: #ffffff;
+  --whatsapp-border: #4ade80;
+}
+
+/* Modo Reducción de Movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
