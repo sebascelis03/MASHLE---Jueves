@@ -9,11 +9,14 @@ export const GroupWarningDialog = () => {
     cancelGroupSwitch, 
     confirmGroupSwitch, 
     currentGroup, 
-    pendingGroupSwitch,
+    pendingAction,
     isAdmin 
   } = useAuthGroup();
 
-  if (!isSwitchWarningOpen || !pendingGroupSwitch) return null;
+  if (!isSwitchWarningOpen || !pendingAction) return null;
+
+  const actionType = pendingAction.type; // 'join' | 'create' | 'leave'
+  const targetName = actionType === 'join' ? pendingAction.group.nombre : pendingAction.data?.nombre;
 
   return (
     <div className="modal-overlay" onClick={cancelGroupSwitch}>
@@ -33,7 +36,7 @@ export const GroupWarningDialog = () => {
             </div>
             <div>
               <h2 id="alert-title-group-switch" className="alert-heading">
-                ⚠️ Confirmación de Salida Automática
+                ⚠️ Saldrás de tu grupo actual
               </h2>
               <p className="alert-subheading">
                 Prevención de errores en comunidades cerradas
@@ -49,17 +52,32 @@ export const GroupWarningDialog = () => {
               </strong>
             </p>
             <p>
-              El sistema de comunidades cerradas únicamente permite pertenecer a un grupo a la vez. 
-              Al unirte a <strong style={{ color: 'var(--primary-500)' }}>{pendingGroupSwitch.nombre}</strong>, 
-              <strong> serás expulsado automáticamente de tu grupo anterior</strong> y perderás acceso a su calendario privado.
+              El sistema de comunidades cerradas únicamente permite pertenecer a un grupo a la vez.
             </p>
+            {actionType === 'join' && (
+              <p className="alert-key-message">
+                Al ingresar a este grupo (<strong style={{ color: 'var(--primary-500)' }}>{targetName}</strong>)
+                {' '}<strong>saldrás automáticamente de tu grupo actual</strong> y perderás acceso a su calendario privado.
+              </p>
+            )}
+            {actionType === 'create' && (
+              <p className="alert-key-message">
+                Al crear la comunidad <strong style={{ color: 'var(--primary-500)' }}>{targetName}</strong>
+                {' '}<strong>saldrás automáticamente de tu grupo actual</strong> y perderás acceso a su calendario privado.
+              </p>
+            )}
+            {actionType === 'leave' && (
+              <p className="alert-key-message">
+                Si continúas, <strong>saldrás de tu grupo actual</strong> y perderás acceso a su calendario privado
+                hasta que te unas a otro o crees uno nuevo.
+              </p>
+            )}
 
             {isAdmin && (
               <div className="admin-succession-warning">
-                <strong>👑 Eres el Administrador de este grupo:</strong>
+                <strong>👑 Eres el único miembro y administrador de este grupo:</strong>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem' }}>
-                  Por lineamiento del sistema, el grupo nunca puede quedar sin administración. Al continuar, deberás 
-                  <strong> seleccionar formalmente a tu sucesor</strong> antes de completar tu salida.
+                  Como no hay otros integrantes para heredar la administración, el grupo quedará cerrado al salir.
                 </p>
               </div>
             )}
@@ -79,9 +97,11 @@ export const GroupWarningDialog = () => {
               type="button"
               onClick={confirmGroupSwitch}
               className="btn btn-danger"
-              aria-label="Aceptar salida automática y continuar con el cambio de grupo"
+              aria-label="Confirmar la salida automática de mi grupo actual"
             >
-              <span>{isAdmin ? 'Continuar a Sucesión' : 'Aceptar Salida y Unirse'}</span>
+              <span>
+                {actionType === 'leave' ? 'Aceptar y salir del grupo' : actionType === 'create' ? 'Aceptar salida y crear comunidad' : 'Aceptar salida y unirme'}
+              </span>
               <ArrowRight size={16} aria-hidden="true" />
             </button>
           </div>

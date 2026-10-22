@@ -3,6 +3,9 @@ import React, { useEffect, useRef } from 'react';
 export const FocusTrap = ({ children, onClose, active = true, role = 'dialog', ariaLabel, ariaDescribedBy }) => {
   const containerRef = useRef(null);
   const previouslyFocusedElementRef = useRef(null);
+  // onClose en ref: evita reiniciar el atrapamiento (y robar el foco) en cada render del padre
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!active) return;
@@ -30,9 +33,9 @@ export const FocusTrap = ({ children, onClose, active = true, role = 'dialog', a
 
     const handleKeyDown = (e) => {
       // Cerrar con Escape
-      if (e.key === 'Escape' && onClose) {
+      if (e.key === 'Escape' && onCloseRef.current) {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -69,7 +72,7 @@ export const FocusTrap = ({ children, onClose, active = true, role = 'dialog', a
         previouslyFocusedElementRef.current.focus();
       }
     };
-  }, [active, onClose]);
+  }, [active]);
 
   return (
     <div

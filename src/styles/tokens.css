@@ -92,6 +92,32 @@
   --status-completed-text: #d1fae5;
   --status-completed-solid: #059669;
 
+  /* Estado personal "No realizada" (siempre con icono ✗ + etiqueta) */
+  --status-danger-bg: rgba(239, 68, 68, 0.15);
+  --status-danger-border: #f87171;
+  --status-danger-text: #fee2e2;
+  --status-danger-solid: #dc2626;
+
+  /* Borde por estado: refuerza la doble codificación sin depender del color */
+  --status-pending-line: solid;
+  --status-progress-line: solid;
+  --status-completed-line: solid;
+  --status-danger-line: solid;
+
+  /* Calibración visual (el asistente actualiza estas variables en <html>) */
+  --a11y-brightness: 1;
+  --a11y-grayscale: 0;
+  --calib-bg: #0a0a0a;
+  --calib-faint: #1c1c1c;
+  --calib-mid: #4a4a4a;
+  --calib-strong: #d4d4d4;
+
+  /* Alertas visuales (Toast) */
+  --toast-info: #38bdf8;
+  --toast-success: var(--status-completed-border);
+  --toast-warning: var(--status-pending-border);
+  --toast-error: var(--status-danger-border);
+
   /* WhatsApp Marca */
   --whatsapp-color: #25d366;
   --whatsapp-bg: #075e54;
@@ -150,10 +176,144 @@ html[data-contrast="high"] {
   --status-completed-text: #4ade80;
   --status-completed-solid: #4ade80;
 
+  --status-danger-bg: #000000;
+  --status-danger-border: #ff6b6b;
+  --status-danger-text: #ff6b6b;
+  --status-danger-solid: #ff6b6b;
+
+  --calib-bg: #000000;
+
   --whatsapp-color: #4ade80;
   --whatsapp-bg: #000000;
   --whatsapp-text: #ffffff;
   --whatsapp-border: #4ade80;
+}
+
+
+/* ==========================================================================
+   PALETAS ADAPTADAS PARA DALTONISMO (data-colorblind en <html>)
+   Basadas en la paleta Okabe-Ito. Regla de oro: el color NUNCA es el único
+   canal; cada estado conserva icono unívoco + etiqueta + estilo de borde.
+   Si el Alto Contraste está activo, estas paletas solo reemplazan los colores
+   de estado/acento (los fondos y bordes de alto contraste se conservan).
+   ========================================================================== */
+
+/* Protanopía (deficiencia de rojo) y Deuteranopía (deficiencia de verde):
+   se evita el eje rojo-verde y se usa azul / amarillo / magenta. */
+html[data-colorblind="protanopia"],
+html[data-colorblind="deuteranopia"] {
+  --status-pending-bg: rgba(204, 121, 167, 0.18);
+  --status-pending-border: #e9a3c9;
+  --status-pending-text: #fbe4f0;
+  --status-pending-solid: #cc79a7;
+  --status-pending-line: dashed;
+
+  --status-progress-bg: rgba(240, 228, 66, 0.15);
+  --status-progress-border: #f0e442;
+  --status-progress-text: #fffbd1;
+  --status-progress-solid: #c9be1f;
+  --status-progress-line: dotted;
+
+  --status-completed-bg: rgba(86, 180, 233, 0.18);
+  --status-completed-border: #56b4e9;
+  --status-completed-text: #dff2fc;
+  --status-completed-solid: #0072b2;
+  --status-completed-line: solid;
+
+  --status-danger-bg: rgba(230, 159, 0, 0.18);
+  --status-danger-border: #e69f00;
+  --status-danger-text: #ffe9b8;
+  --status-danger-solid: #b87a00;
+  --status-danger-line: double;
+
+  --toast-info: #56b4e9;
+  --toast-success: #56b4e9;
+  --toast-warning: #f0e442;
+  --toast-error: #e69f00;
+}
+
+/* Tritanopía (deficiencia de azul/amarillo): se evita el eje azul-amarillo
+   y se usa rojo / verde azulado claro / violeta con diferencias de luminosidad. */
+html[data-colorblind="tritanopia"] {
+  --status-pending-bg: rgba(248, 113, 113, 0.18);
+  --status-pending-border: #fb8c8c;
+  --status-pending-text: #ffe0e0;
+  --status-pending-solid: #dc4a4a;
+  --status-pending-line: dashed;
+
+  --status-progress-bg: rgba(226, 232, 240, 0.14);
+  --status-progress-border: #e2e8f0;
+  --status-progress-text: #f8fafc;
+  --status-progress-solid: #94a3b8;
+  --status-progress-line: dotted;
+
+  --status-completed-bg: rgba(52, 211, 153, 0.18);
+  --status-completed-border: #34d399;
+  --status-completed-text: #d1fae5;
+  --status-completed-solid: #059669;
+  --status-completed-line: solid;
+
+  --status-danger-bg: rgba(192, 38, 211, 0.2);
+  --status-danger-border: #e879f9;
+  --status-danger-text: #fae8ff;
+  --status-danger-solid: #a21caf;
+  --status-danger-line: double;
+
+  --primary-500: #e879f9;
+  --primary-600: #c026d3;
+  --primary-700: #a21caf;
+  --primary-glow: rgba(232, 121, 249, 0.28);
+
+  --toast-info: #e2e8f0;
+  --toast-success: #34d399;
+  --toast-warning: #fb8c8c;
+  --toast-error: #e879f9;
+}
+
+/* Acromatopsia / Monocromático: escala de grises de alto contraste.
+   Los estados se distinguen por luminosidad + estilo de borde + icono + texto. */
+html[data-colorblind="achromatopsia"] {
+  --a11y-grayscale: 1;
+
+  --status-pending-bg: #1a1a1a;
+  --status-pending-border: #9ca3af;
+  --status-pending-text: #e5e7eb;
+  --status-pending-solid: #6b7280;
+  --status-pending-line: dashed;
+
+  --status-progress-bg: #262626;
+  --status-progress-border: #d1d5db;
+  --status-progress-text: #f3f4f6;
+  --status-progress-solid: #9ca3af;
+  --status-progress-line: dotted;
+
+  --status-completed-bg: #ffffff;
+  --status-completed-border: #ffffff;
+  --status-completed-text: #000000;
+  --status-completed-solid: #ffffff;
+  --status-completed-line: solid;
+
+  --status-danger-bg: #000000;
+  --status-danger-border: #ffffff;
+  --status-danger-text: #ffffff;
+  --status-danger-solid: #ffffff;
+  --status-danger-line: double;
+
+  --primary-500: #f5f5f5;
+  --primary-600: #6b7280;
+  --primary-700: #4b5563;
+  --primary-glow: rgba(255, 255, 255, 0.25);
+
+  --toast-info: #d1d5db;
+  --toast-success: #ffffff;
+  --toast-warning: #9ca3af;
+  --toast-error: #ffffff;
+}
+
+/* Calibración global: brillo y escala de grises se aplican sobre <html>
+   solo cuando difieren del valor por defecto (evita costo de filtro inútil). */
+html[data-a11y-filter="on"] {
+  filter: brightness(var(--a11y-brightness)) grayscale(var(--a11y-grayscale));
 }
 
 /* Modo Reducción de Movimiento */

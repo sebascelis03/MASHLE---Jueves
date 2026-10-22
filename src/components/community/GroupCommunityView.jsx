@@ -1,15 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
-import { Users, Plus, Shield, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Users, Plus, CheckCircle2, ArrowRight, LogOut } from 'lucide-react';
 
 export const GroupCommunityView = () => {
-  const { groups, currentGroup, currentUser, requestJoinGroup, createNewGroup } = useAuthGroup();
+  const { groups, currentGroup, currentUser, isAdmin, requestJoinGroup, createNewGroup, requestLeaveGroup } = useAuthGroup();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [codigoInvitacion, setCodigoInvitacion] = useState('');
 
+  // Cuando el usuario cambia efectivamente de grupo, se limpia y cierra el formulario
+  useEffect(() => {
+    setNombre('');
+    setDescripcion('');
+    setCodigoInvitacion('');
+    setShowCreateForm(false);
+  }, [currentGroup?.id]);
+
+  // Si ya hay grupo, createNewGroup abre el aviso/sucesión y el formulario se conserva
+  // por si el usuario cancela.
   const handleCreate = (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
@@ -19,11 +29,6 @@ export const GroupCommunityView = () => {
       descripcion: descripcion.trim(),
       codigoInvitacion: codigoInvitacion.trim().toUpperCase()
     });
-
-    setNombre('');
-    setDescripcion('');
-    setCodigoInvitacion('');
-    setShowCreateForm(false);
   };
 
   return (
@@ -45,15 +50,29 @@ export const GroupCommunityView = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShowCreateForm(prev => !prev)}
-          className="btn btn-primary"
-          aria-label="Crear una nueva comunidad escolar"
-        >
-          <Plus size={16} aria-hidden="true" />
-          <span>Crear Nueva Comunidad</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(prev => !prev)}
+            className="btn btn-primary"
+            aria-expanded={showCreateForm}
+            aria-label="Crear una nueva comunidad escolar"
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>Crear Nueva Comunidad</span>
+          </button>
+          {currentGroup && (
+            <button
+              type="button"
+              onClick={requestLeaveGroup}
+              className="btn btn-secondary"
+              aria-label={isAdmin ? 'Salir de mi grupo (deberás ceder la administración)' : 'Salir de mi grupo actual'}
+            >
+              <LogOut size={16} aria-hidden="true" />
+              <span>Salir del grupo</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Formulario de creación de comunidad */}
@@ -62,7 +81,8 @@ export const GroupCommunityView = () => {
           <h3 style={{ fontSize: '1.15rem', margin: '0 0 1rem' }}>🏫 Crear Nueva Comunidad Estudiantil</h3>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
             Al crear una comunidad te convertirás automáticamente en su <strong>Administrador</strong>. 
-            Recuerda que solo puedes pertenecer a un grupo escolar a la vez.
+            Recuerda que solo puedes pertenecer a un grupo escolar a la vez: si ya estás en uno, saldrás de él
+            {isAdmin ? ' (antes deberás ceder la administración a un compañero).' : '.'}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
@@ -167,7 +187,7 @@ export const GroupCommunityView = () => {
                     type="button"
                     onClick={() => requestJoinGroup(group.id)}
                     className="btn btn-sm btn-secondary"
-                    aria-label={`Solicitar unirme a la comunidad ${group.nombre}`}
+                    aria-label={currentGroup ? `Unirme a la comunidad ${group.nombre} y salir de mi grupo actual` : `Unirme a la comunidad ${group.nombre}`}
                   >
                     <span>Unirme a este Grupo</span>
                     <ArrowRight size={14} aria-hidden="true" />

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useTasks } from '../../context/TaskContext';
+import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useA11y } from '../../context/A11yContext';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon } from 'lucide-react';
 
 export const CalendarGrid = () => {
   const { tasks, selectedDate, setSelectedDate, setIsTaskModalOpen, setEditingTask } = useTasks();
+  const { isAdmin } = useAuthGroup();
   const { announce } = useA11y();
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => {
@@ -184,15 +186,17 @@ export const CalendarGrid = () => {
       {/* Barra de acción rápida para el día seleccionado */}
       <div className="calendar-selected-bar">
         <span>Fecha seleccionada: <strong>{selectedDate}</strong></span>
-        <button
-          type="button"
-          onClick={handleNewTaskForSelected}
-          className="btn btn-sm btn-primary"
-          aria-label={`Crear nueva tarea para el día ${selectedDate}`}
-        >
-          <Plus size={16} aria-hidden="true" />
-          <span>Nueva Tarea aquí</span>
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleNewTaskForSelected}
+            className="btn btn-sm btn-primary"
+            aria-label={`Crear nueva tarea para el día ${selectedDate}`}
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>Nueva Tarea aquí</span>
+          </button>
+        )}
       </div>
 
       <style>{`
@@ -305,9 +309,9 @@ export const CalendarGrid = () => {
           height: 7px;
           border-radius: 50%;
         }
-        .dot-pending { background-color: #f59e0b; }
-        .dot-progress { background-color: #3b82f6; }
-        .dot-completed { background-color: #10b981; }
+        .dot-pending { background-color: var(--status-pending-border); border-radius: 2px; }
+        .dot-progress { background-color: var(--status-progress-border); transform: rotate(45deg); border-radius: 1px; }
+        .dot-completed { background-color: var(--status-completed-border); }
         
         .calendar-selected-bar {
           display: flex;

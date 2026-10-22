@@ -252,22 +252,42 @@ h1, h2, h3, h4, h5, h6 {
   border: 1.5px solid currentColor;
 }
 
+/* Cada estado combina: color + icono + etiqueta + estilo de borde propio */
 .badge-pending {
   background-color: var(--status-pending-bg);
-  color: var(--status-pending-border);
-  border-color: var(--status-pending-border);
+  color: var(--status-pending-text);
+  border: 2px var(--status-pending-line) var(--status-pending-border);
 }
 
 .badge-progress {
   background-color: var(--status-progress-bg);
-  color: var(--status-progress-border);
-  border-color: var(--status-progress-border);
+  color: var(--status-progress-text);
+  border: 2px var(--status-progress-line) var(--status-progress-border);
 }
 
 .badge-completed {
   background-color: var(--status-completed-bg);
-  color: var(--status-completed-border);
-  border-color: var(--status-completed-border);
+  color: var(--status-completed-text);
+  border: 2px var(--status-completed-line) var(--status-completed-border);
+}
+
+.badge-danger {
+  background-color: var(--status-danger-bg);
+  color: var(--status-danger-text);
+  border: 2px var(--status-danger-line) var(--status-danger-border);
+}
+
+/* Botones tipo interruptor (estado personal, opciones del asistente) */
+.btn[aria-pressed="true"].btn-done {
+  background-color: var(--status-completed-bg);
+  border: 2px var(--status-completed-line) var(--status-completed-border);
+  color: var(--status-completed-text);
+}
+
+.btn[aria-pressed="true"].btn-notdone {
+  background-color: var(--status-danger-bg);
+  border: 2px var(--status-danger-line) var(--status-danger-border);
+  color: var(--status-danger-text);
 }
 
 /* Animaciones */

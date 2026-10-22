@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useA11y } from '../../context/A11yContext';
-import { Eye, Sun, Type, Wifi, WifiOff, Keyboard } from 'lucide-react';
+import { Eye, Type, Wifi, WifiOff, Keyboard } from 'lucide-react';
 
 export const A11yControls = () => {
-  const { altoContraste, fontSize, toggleAltoContraste, setFontSize, announce } = useA11y();
+  const { altoContraste, fontSize, toggleAltoContraste, setFontSize, announce, openOnboarding } = useA11y();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -48,6 +48,18 @@ export const A11yControls = () => {
             </>
           )}
         </div>
+
+        {/* Reabrir el asistente de calibración (estilo consola) */}
+        <button
+          type="button"
+          onClick={openOnboarding}
+          className="btn btn-sm btn-secondary"
+          aria-label="Abrir el asistente de calibración de accesibilidad"
+          title="Calibrar Accesibilidad"
+        >
+          <span aria-hidden="true">🎮</span>
+          <span>Calibrar Accesibilidad</span>
+        </button>
 
         {/* Botón Alto Contraste */}
         <button
@@ -124,7 +136,7 @@ export const A11yControls = () => {
           </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
-            <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar</li>
+            <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
             <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
             <li><kbd>Alt + L</kbd>: Ir a vista Lista / Agenda</li>
             <li><kbd>Escape</kbd>: Cerrar cualquier ventana o modal</li>

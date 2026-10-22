@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FocusTrap } from '../a11y/FocusTrap';
 import { useTasks } from '../../context/TaskContext';
+import { useAuthGroup } from '../../context/AuthGroupContext';
 import { X, Save, AlertCircle } from 'lucide-react';
 
 export const TaskFormModal = () => {
   const { isTaskModalOpen, setIsTaskModalOpen, editingTask, setEditingTask, subjects, saveTask, selectedDate } = useTasks();
+  const { isAdmin } = useAuthGroup();
 
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
@@ -36,7 +38,8 @@ export const TaskFormModal = () => {
     setError('');
   }, [editingTask, isTaskModalOpen, selectedDate, subjects]);
 
-  if (!isTaskModalOpen) return null;
+  // Solo el administrador del grupo puede crear/editar tareas oficiales
+  if (!isTaskModalOpen || !isAdmin) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();

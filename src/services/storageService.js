@@ -6,7 +6,22 @@ const STORAGE_KEYS = {
   GROUPS: 'cal_estudiantil_groups',
   TASKS: 'cal_estudiantil_tasks',
   SUBJECTS: 'cal_estudiantil_subjects',
-  SETTINGS: 'cal_estudiantil_settings'
+  SETTINGS: 'cal_estudiantil_settings',
+  USER_PROGRESS: 'cal_estudiantil_user_progress'
+};
+
+// Valores por defecto de accesibilidad (se fusionan con lo guardado para migrar versiones previas)
+export const DEFAULT_SETTINGS = {
+  altoContraste: false,
+  fontSize: 'normal',
+  modoOscuro: true,
+  reducirAnimaciones: false,
+  daltonismo: 'estandar', // 'estandar' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'acromatopsia'
+  brillo: 100, // porcentaje 60-140
+  lecturaVoz: false, // TTS (Web Speech API)
+  sonidos: false, // Retroalimentación auditiva (Web Audio API)
+  alertasVisuales: false, // Toasts para usuarios con discapacidad auditiva
+  onboardingCompletado: false
 };
 
 // Cuentas Mock para pruebas de acceso, roles y sucesión
@@ -310,23 +325,40 @@ export const storageService = {
 
   getSettings() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)) || {
-        altoContraste: false,
-        fontSize: 'normal',
-        modoOscuro: true,
-        reducirAnimaciones: false
-      };
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS));
+      return { ...DEFAULT_SETTINGS, ...(saved || {}) };
     } catch {
-      return {
-        altoContraste: false,
-        fontSize: 'normal',
-        modoOscuro: true,
-        reducirAnimaciones: false
-      };
+      return { ...DEFAULT_SETTINGS };
     }
   },
 
   saveSettings(settings) {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  },
+
+  // Mantiene la base mock de usuarios sincronizada con el grupo/rol actual del estudiante
+  updateUser(user) {
+    if (!user) return;
+    const users = this.getUsers();
+    const exists = users.some(u => u.id === user.id);
+    const next = exists
+      ? users.map(u => (u.id === user.id ? { ...u, ...user } : u))
+      : [...users, user];
+    this.saveUsers(next);
+  },
+
+  // Seguimiento individual por tarea:
+  // { "[userId]_[taskId]": { realizada: boolean, notasPersonales: string, fechaActualizacion: string } }
+  getUserProgress() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_PROGRESS));
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  },
+
+  saveUserProgress(progress) {
+    localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(progress));
   }
 };

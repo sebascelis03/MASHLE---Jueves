@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FocusTrap } from '../a11y/FocusTrap';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { Crown, UserCheck, ShieldAlert, Check, UserX } from 'lucide-react';
@@ -6,18 +6,34 @@ import { Crown, UserCheck, ShieldAlert, Check, UserX } from 'lucide-react';
 export const SuccessionModal = () => {
   const {
     isSuccessionModalOpen,
-    setIsSuccessionModalOpen,
+    cancelSuccession,
     currentGroup,
     currentUser,
+    pendingAction,
     transferAdminRoleAndLeave,
     autoAssignSuccessorAndLeave
   } = useAuthGroup();
 
   // Candidatos elegibles (excluyendo al admin saliente)
   const eligibleMembers = currentGroup?.miembros.filter(m => m.id !== currentUser?.id) || [];
-  const [selectedSuccessorId, setSelectedSuccessorId] = useState(eligibleMembers[0]?.id || '');
+  const [selectedSuccessorId, setSelectedSuccessorId] = useState('');
+
+  // Reiniciar la selección cada vez que se abre el modal o cambia el grupo
+  useEffect(() => {
+    if (isSuccessionModalOpen) {
+      const candidates = currentGroup?.miembros.filter(m => m.id !== currentUser?.id) || [];
+      setSelectedSuccessorId(candidates[0]?.id || '');
+    }
+  }, [isSuccessionModalOpen, currentGroup?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isSuccessionModalOpen || !currentGroup) return null;
+
+  const reasonText =
+    pendingAction?.type === 'join'
+      ? `Para unirte a "${pendingAction.group.nombre}"`
+      : pendingAction?.type === 'create'
+        ? `Para crear la comunidad "${pendingAction.data?.nombre}"`
+        : 'Para retirarte del grupo';
 
   const handleManualSuccession = (e) => {
     e.preventDefault();
@@ -26,7 +42,7 @@ export const SuccessionModal = () => {
   };
 
   const handleCancel = () => {
-    setIsSuccessionModalOpen(false);
+    cancelSuccession();
   };
 
   return (
@@ -47,7 +63,8 @@ export const SuccessionModal = () => {
                 👑 Cesión y Sucesión de Administrador
               </h2>
               <p id="succession-modal-desc" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                Garantía institucional: el grupo <strong>{currentGroup.nombre}</strong> no puede quedar sin administrador.
+                {reasonText} debes <strong>transferir la administración</strong> de <strong>{currentGroup.nombre}</strong> a un compañero.
+                El grupo no puede quedar sin administrador.
               </p>
             </div>
           </div>
@@ -58,8 +75,16 @@ export const SuccessionModal = () => {
               <div>
                 <strong>Eres el único miembro en esta comunidad.</strong>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  Al salir, el grupo quedará cerrado o archivado temporalmente hasta que un nuevo miembro solicite acceso.
+                  Al salir, el grupo quedará cerrado.
                 </p>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-secondary" onClick={handleCancel}>
+                    Permanecer
+                  </button>
+                  <button type="button" className="btn btn-danger" onClick={() => transferAdminRoleAndLeave(null)}>
+                    Salir y cerrar el grupo
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTasks } from '../../context/TaskContext';
 import { TaskCard } from '../tasks/TaskCard';
+import { useAuthGroup } from '../../context/AuthGroupContext';
 import { Filter, CheckSquare, Clock, AlertTriangle, Plus } from 'lucide-react';
 
 export const AgendaView = () => {
@@ -15,6 +16,8 @@ export const AgendaView = () => {
     setEditingTask,
     tasks
   } = useTasks();
+
+  const { isAdmin } = useAuthGroup();
 
   const total = tasks.length;
   const pendingCount = tasks.filter(t => t.estado === 'pendiente').length;
@@ -92,15 +95,17 @@ export const AgendaView = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleCreateNew}
-          className="btn btn-sm btn-primary"
-          aria-label="Crear nueva tarea escolar (Atajo Alt + N)"
-        >
-          <Plus size={16} aria-hidden="true" />
-          <span>Nueva Tarea (Alt + N)</span>
-        </button>
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={handleCreateNew}
+            className="btn btn-sm btn-primary"
+            aria-label="Crear nueva tarea escolar (Atajo Alt + N)"
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>Nueva Tarea (Alt + N)</span>
+          </button>
+        )}
       </div>
 
       {/* Lista de Tareas */}
@@ -111,16 +116,20 @@ export const AgendaView = () => {
               🎉 No hay tareas que coincidan con los filtros seleccionados.
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.5rem 0 1rem' }}>
-              Puedes agregar una nueva tarea o cambiar el criterio de búsqueda.
+              {isAdmin
+                ? 'Puedes agregar una nueva tarea o cambiar el criterio de búsqueda.'
+                : 'Cambia el criterio de búsqueda o espera a que el administrador publique nuevas tareas.'}
             </p>
-            <button
-              type="button"
-              onClick={handleCreateNew}
-              className="btn btn-primary"
-            >
-              <Plus size={16} aria-hidden="true" />
-              <span>Crear una tarea ahora</span>
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                className="btn btn-primary"
+              >
+                <Plus size={16} aria-hidden="true" />
+                <span>Crear una tarea ahora</span>
+              </button>
+            )}
           </div>
         ) : (
           filteredTasks.map(task => {

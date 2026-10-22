@@ -6,6 +6,8 @@ import { TaskProvider, useTasks } from './context/TaskContext';
 import { SkipLink } from './components/a11y/SkipLink';
 import { LiveAnnouncer } from './components/a11y/LiveAnnouncer';
 import { A11yControls } from './components/a11y/A11yControls';
+import { A11yOnboardingModal } from './components/a11y/A11yOnboardingModal';
+import { ToastHost } from './components/a11y/ToastHost';
 import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 
 import { AuthView } from './components/auth/AuthView';
@@ -40,9 +42,13 @@ const MainLayout = () => {
     if (!isAuthenticated) return;
 
     const handleKeyDown = (e) => {
-      // Alt + N: Nueva Tarea
+      // Alt + N: Nueva Tarea (solo el administrador crea tareas oficiales)
       if (e.altKey && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
+        if (!isAdmin) {
+          announce('Solo el administrador del grupo puede crear tareas. Puedes llevar tu propio seguimiento en cada tarea.', 'polite');
+          return;
+        }
         setEditingTask(null);
         setIsTaskModalOpen(true);
         announce('Ventana para crear nueva tarea abierta.', 'polite');
@@ -63,7 +69,7 @@ const MainLayout = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAuthenticated, setIsTaskModalOpen, setEditingTask, announce]);
+  }, [isAuthenticated, isAdmin, setIsTaskModalOpen, setEditingTask, announce]);
 
   const handleTabChange = (tabId, label) => {
     setActiveTab(tabId);
@@ -81,6 +87,8 @@ const MainLayout = () => {
       <LiveAnnouncer />
       <A11yControls />
       <PWAInstallBanner />
+      <A11yOnboardingModal />
+      <ToastHost />
 
       {/* Barra de Navegación y Encabezado Principal */}
       <header className="app-header" role="banner">
@@ -109,16 +117,18 @@ const MainLayout = () => {
 
           {isAuthenticated ? (
             <div className="header-actions">
-              <button
-                type="button"
-                onClick={openNewTaskModal}
-                className="btn btn-primary"
-                aria-label="Crear nueva tarea escolar (Atajo de teclado Alt + N)"
-                title="Atajo: Alt + N"
-              >
-                <Plus size={18} aria-hidden="true" />
-                <span>Nueva Tarea (Alt+N)</span>
-              </button>
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={openNewTaskModal}
+                  className="btn btn-primary"
+                  aria-label="Crear nueva tarea escolar (Atajo de teclado Alt + N)"
+                  title="Atajo: Alt + N"
+                >
+                  <Plus size={18} aria-hidden="true" />
+                  <span>Nueva Tarea (Alt+N)</span>
+                </button>
+              )}
 
               <button
                 type="button"
