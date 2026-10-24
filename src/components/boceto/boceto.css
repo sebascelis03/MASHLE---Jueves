@@ -1,0 +1,357 @@
+/* ==========================================================================
+   BOCETO INICIAL (WIREFRAME / PROTOTIPO DE BAJA FIDELIDAD) - ESTILOS
+   Este archivo representa la estética inicial previa a la implementación
+   de los estándares de Accesibilidad (WCAG 2.1) y Usabilidad avanzada.
+   Estilo: Monocromático, cajas con bordes grises, tipografía estándar,
+   sin efectos modernos (sin gradientes, sin glassmorphism, sin animaciones).
+   ========================================================================== */
+
+.boceto-container {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #1f2937;
+  background-color: #f3f4f6;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Banner de modo comparativo en la parte superior */
+.boceto-top-banner {
+  background-color: #374151;
+  color: #ffffff;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  border-bottom: 2px solid #111827;
+}
+
+.boceto-top-banner .badge-wireframe {
+  background-color: #4b5563;
+  color: #f9fafb;
+  padding: 3px 8px;
+  font-family: monospace;
+  font-size: 12px;
+  border-radius: 3px;
+  border: 1px dashed #9ca3af;
+}
+
+.boceto-btn-switch {
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.boceto-btn-switch:hover {
+  background-color: #1d4ed8;
+}
+
+/* Encabezado del Boceto */
+.boceto-header {
+  background-color: #ffffff;
+  border-bottom: 2px solid #9ca3af;
+  padding: 16px 24px;
+}
+
+.boceto-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.boceto-title-box h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: bold;
+  color: #111827;
+}
+
+.boceto-title-box p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.boceto-user-box {
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 6px 12px;
+  background-color: #f9fafb;
+  font-size: 13px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Barra de Pestañas */
+.boceto-nav {
+  max-width: 1100px;
+  margin: 16px auto 0 auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.boceto-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid #9ca3af;
+  overflow-x: auto;
+}
+
+.boceto-tab-btn {
+  background-color: #e5e7eb;
+  border: 1px solid #9ca3af;
+  border-bottom: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: #374151;
+  border-radius: 4px 4px 0 0;
+}
+
+.boceto-tab-btn.active {
+  background-color: #ffffff;
+  font-weight: bold;
+  color: #111827;
+  border-top: 3px solid #374151;
+  margin-bottom: -2px;
+  padding-bottom: 9px;
+}
+
+/* Área de Contenido Principal */
+.boceto-main {
+  max-width: 1100px;
+  margin: 16px auto;
+  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
+  flex: 1;
+}
+
+.boceto-card {
+  background-color: #ffffff;
+  border: 1px solid #9ca3af;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.boceto-card-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 0 0 12px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Botones estándar de wireframe */
+.boceto-btn {
+  background-color: #e5e7eb;
+  border: 1px solid #6b7280;
+  color: #111827;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.boceto-btn:hover {
+  background-color: #d1d5db;
+}
+
+.boceto-btn-primary {
+  background-color: #4b5563;
+  color: #ffffff;
+  border: 1px solid #1f2937;
+}
+
+.boceto-btn-primary:hover {
+  background-color: #374151;
+}
+
+.boceto-btn-danger {
+  background-color: #991b1b;
+  color: #ffffff;
+  border: 1px solid #7f1d1d;
+}
+
+/* Grilla del Calendario en Boceto */
+.boceto-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border: 1px solid #6b7280;
+  background-color: #9ca3af;
+  gap: 1px;
+}
+
+.boceto-cal-header {
+  background-color: #e5e7eb;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.boceto-cal-cell {
+  background-color: #ffffff;
+  min-height: 80px;
+  padding: 6px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.boceto-cal-cell.today {
+  background-color: #fef3c7;
+}
+
+.boceto-day-num {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.boceto-task-pill {
+  background-color: #e5e7eb;
+  border: 1px solid #9ca3af;
+  padding: 2px 4px;
+  font-size: 11px;
+  margin-top: 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Columnas de Tablero en Boceto */
+.boceto-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.boceto-board-col {
+  background-color: #f9fafb;
+  border: 1px solid #d1d5db;
+  padding: 12px;
+}
+
+.boceto-col-header {
+  font-weight: bold;
+  font-size: 14px;
+  border-bottom: 2px solid #9ca3af;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.boceto-task-card {
+  background-color: #ffffff;
+  border: 1px solid #9ca3af;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.boceto-task-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Tablas Wireframe */
+.boceto-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.boceto-table th {
+  background-color: #e5e7eb;
+  border: 1px solid #9ca3af;
+  padding: 8px 10px;
+}
+
+.boceto-table td {
+  border: 1px solid #d1d5db;
+  padding: 8px 10px;
+}
+
+/* Formulario Wireframe */
+.boceto-form-group {
+  margin-bottom: 12px;
+}
+
+.boceto-form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.boceto-input, .boceto-select {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #9ca3af;
+  box-sizing: border-box;
+  background-color: #ffffff;
+}
+
+/* Modal Wireframe */
+.boceto-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.boceto-modal-box {
+  background-color: #ffffff;
+  border: 2px solid #374151;
+  width: 100%;
+  max-width: 500px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.boceto-modal-footer {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Pie de página de boceto */
+.boceto-footer {
+  background-color: #e5e7eb;
+  border-top: 1px solid #9ca3af;
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #4b5563;
+  text-align: center;
+  margin-top: auto;
+}

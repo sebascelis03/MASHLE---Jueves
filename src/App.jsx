@@ -20,6 +20,7 @@ import { GroupAdminPanel } from './components/admin/GroupAdminPanel';
 import { TaskFormModal } from './components/tasks/TaskFormModal';
 import { GroupWarningDialog } from './components/community/GroupWarningDialog';
 import { SuccessionModal } from './components/admin/SuccessionModal';
+import { BocetoView } from './components/boceto/BocetoView';
 
 import { 
   Calendar as CalIcon, 
@@ -30,10 +31,11 @@ import {
   Plus, 
   GraduationCap, 
   Crown,
-  LogOut
+  LogOut,
+  LayoutTemplate
 } from 'lucide-react';
 
-const MainLayout = () => {
+const MainLayout = ({ onSwitchToBoceto }) => {
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'community' | 'admin'
   const { currentGroup, currentUser, isAdmin, isAuthenticated, logout } = useAuthGroup();
   const { setIsTaskModalOpen, setEditingTask } = useTasks();
@@ -123,33 +125,47 @@ const MainLayout = () => {
             </div>
           </div>
 
-          {isAuthenticated ? (
-            <div className="header-actions">
-              {isAdmin && (
+          <div className="header-actions">
+            <button
+              type="button"
+              onClick={onSwitchToBoceto}
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+              aria-label="Ir a la ruta /boceto"
+              title="Abrir vista /boceto"
+            >
+              <LayoutTemplate size={16} aria-hidden="true" />
+              <span>Ir a /boceto</span>
+            </button>
+
+            {isAuthenticated ? (
+              <>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={openNewTaskModal}
+                    className="btn btn-primary"
+                    aria-label="Crear nueva tarea escolar (Atajo de teclado Alt + N)"
+                    title="Atajo: Alt + N"
+                  >
+                    <Plus size={18} aria-hidden="true" />
+                    <span>Nueva Tarea (Alt+N)</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={openNewTaskModal}
-                  className="btn btn-primary"
-                  aria-label="Crear nueva tarea escolar (Atajo de teclado Alt + N)"
-                  title="Atajo: Alt + N"
+                  onClick={logout}
+                  className="btn btn-secondary"
+                  aria-label={`Cerrar sesión de ${currentUser?.nombre}`}
+                  title="Cerrar sesión"
                 >
-                  <Plus size={18} aria-hidden="true" />
-                  <span>Nueva Tarea (Alt+N)</span>
+                  <LogOut size={16} aria-hidden="true" />
+                  <span>Salir</span>
                 </button>
-              )}
-
-              <button
-                type="button"
-                onClick={logout}
-                className="btn btn-secondary"
-                aria-label={`Cerrar sesión de ${currentUser?.nombre}`}
-                title="Cerrar sesión"
-              >
-                <LogOut size={16} aria-hidden="true" />
-                <span>Salir</span>
-              </button>
-            </div>
-          ) : null}
+              </>
+            ) : null}
+          </div>
         </div>
 
         {/* Pestañas de Navegación Accesibles (solo si ha iniciado sesión) */}
@@ -439,13 +455,59 @@ const MainLayout = () => {
 };
 
 export default function App() {
+  const [currentRoute, setCurrentRoute] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/boceto' || path.endsWith('/boceto') || hash === '#/boceto' || hash === '#boceto') {
+        return 'boceto';
+      }
+    }
+    return 'app';
+  });
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/boceto' || path.endsWith('/boceto') || hash === '#/boceto' || hash === '#boceto') {
+        setCurrentRoute('boceto');
+      } else {
+        setCurrentRoute('app');
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
+
+  const navigateTo = (route) => {
+    if (route === 'boceto') {
+      window.history.pushState({}, '', '/boceto');
+      setCurrentRoute('boceto');
+    } else {
+      window.history.pushState({}, '', '/');
+      setCurrentRoute('app');
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  if (currentRoute === 'boceto') {
+    return <BocetoView onSwitchToApp={() => navigateTo('app')} />;
+  }
+
   return (
     <A11yProvider>
       <AuthGroupProvider>
         <TaskProvider>
-          <MainLayout />
+          <MainLayout onSwitchToBoceto={() => navigateTo('boceto')} />
         </TaskProvider>
       </AuthGroupProvider>
     </A11yProvider>
   );
 }
+
