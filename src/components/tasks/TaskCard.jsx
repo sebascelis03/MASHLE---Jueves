@@ -1,19 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { TaskStatusBadge } from './TaskStatusBadge';
-import { Calendar, Clock, MessageCircle, Trash2, Edit3, Check, X, Save, Lock, Users, StickyNote } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MessageCircle,
+  Trash2,
+  Edit3,
+  Check,
+  X,
+  Save,
+  Lock,
+  Users,
+  StickyNote,
+  PlayCircle,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 
+const PRIORITY_CONFIG = {
+  alta: {
+    label: 'Prioridad Alta',
+    shortLabel: '🔥 Alta',
+    className: 'badge-danger'
+  },
+  media: {
+    label: 'Prioridad Media',
+    shortLabel: '⚡ Media',
+    className: 'badge-pending'
+  },
+  baja: {
+    label: 'Prioridad Baja',
+    shortLabel: '📌 Baja',
+    className: 'badge-progress'
+  }
+};
+
 export const TaskCard = ({ task, subject }) => {
   const {
-    updateTaskStatus, deleteTask, setEditingTask, setIsTaskModalOpen,
-    getMyProgress, setMyTaskDone, saveMyNotes, getTaskCompletion
+    updateTaskStatus,
+    deleteTask,
+    setEditingTask,
+    setIsTaskModalOpen,
+    getMyProgress,
+    setMyTaskStatus,
+    saveMyNotes,
+    getTaskCompletion
   } = useTasks();
   const { isAdmin, currentUser } = useAuthGroup();
 
   const myProgress = getMyProgress(task.id);
-  const { done, total } = getTaskCompletion(task.id);
+  const { done, inProgress, pending, total, membersBreakdown } = getTaskCompletion(task.id);
   const completionPct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   // Borrador local de notas personales (se guarda con el botón)
   const [notesDraft, setNotesDraft] = useState(myProgress.notasPersonales);
@@ -22,6 +64,7 @@ export const TaskCard = ({ task, subject }) => {
   }, [myProgress.notasPersonales, currentUser?.id]);
 
   const notesChanged = notesDraft !== myProgress.notasPersonales;
+  const priorityInfo = PRIORITY_CONFIG[task.prioridad || 'media'] || PRIORITY_CONFIG.media;
 
   const handleEdit = () => {
     setEditingTask(task);
@@ -47,9 +90,13 @@ export const TaskCard = ({ task, subject }) => {
     >
       <div className="task-header">
         <div className="task-title-area">
-          {subject && (
+          {subject ? (
             <span className="task-subject-tag" style={{ color: subject.color }}>
               ● {subject.nombre}
+            </span>
+          ) : (
+            <span className="task-subject-tag" style={{ color: 'var(--text-secondary)' }}>
+              ● General
             </span>
           )}
           <h3 id={`task-title-${task.id}`} className="task-title">
@@ -58,17 +105,33 @@ export const TaskCard = ({ task, subject }) => {
         </div>
 
         <div className="task-badges">
+          {/* Insignia de Prioridad con triple codificación */}
+          <span
+            className={`badge ${priorityInfo.className}`}
+            aria-label={priorityInfo.label}
+            title={priorityInfo.label}
+          >
+            <span>{priorityInfo.shortLabel}</span>
+          </span>
+
+          {/* Estado oficial del curso */}
           <TaskStatusBadge estado={task.estado} />
-          {/* Estado personal: color + ícono (✓ / ✗) + etiqueta */}
-          {myProgress.realizada ? (
-            <span className="badge badge-completed" role="status" aria-label="Mi seguimiento: ya la realicé">
+
+          {/* Estado personal del estudiante: color + ícono + etiqueta */}
+          {myProgress.estadoPersonal === 'finalizada' ? (
+            <span className="badge badge-completed" role="status" aria-label="Mi seguimiento: realizada">
               <Check size={13} aria-hidden="true" />
               <span>Mi estado: Realizada</span>
             </span>
+          ) : myProgress.estadoPersonal === 'en_progreso' ? (
+            <span className="badge badge-progress" role="status" aria-label="Mi seguimiento: en progreso">
+              <PlayCircle size={13} aria-hidden="true" />
+              <span>Mi estado: En Progreso</span>
+            </span>
           ) : (
-            <span className="badge badge-danger" role="status" aria-label="Mi seguimiento: no la he realizado">
+            <span className="badge badge-danger" role="status" aria-label="Mi seguimiento: pendiente por realizar">
               <X size={13} aria-hidden="true" />
-              <span>Mi estado: No realizada</span>
+              <span>Mi estado: Pendiente</span>
             </span>
           )}
         </div>
@@ -91,56 +154,111 @@ export const TaskCard = ({ task, subject }) => {
         )}
       </div>
 
-      {/* Métrica de cumplimiento del salón (solo administrador) */}
+      {/* Métrica y desglose nominal de cumplimiento del salón (solo administrador) */}
       {isAdmin && (
         <div className="completion-box">
-          <div className="completion-text">
-            <Users size={15} aria-hidden="true" />
-            <span>
-              <strong>{done} de {total}</strong> estudiantes han realizado esta tarea
-            </span>
+          <div className="completion-top-row">
+            <div className="completion-text">
+              <Users size={15} aria-hidden="true" />
+              <span>
+                <strong>{done} de {total}</strong> realizaron · <strong>{inProgress}</strong> en progreso · <strong>{pending}</strong> pendientes
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowBreakdown(prev => !prev)}
+              className="btn btn-sm btn-secondary"
+              aria-expanded={showBreakdown}
+              aria-label={`Ver detalle de cumplimiento por estudiante en ${task.titulo}`}
+            >
+              <span>{showBreakdown ? 'Ocultar estudiantes' : 'Ver estudiantes'}</span>
+              {showBreakdown ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+            </button>
           </div>
-          <div
-            className="completion-bar"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={total}
-            aria-valuenow={done}
-            aria-valuetext={`${done} de ${total} estudiantes han realizado esta tarea (${completionPct}%)`}
-            aria-label={`Cumplimiento del salón en ${task.titulo}`}
-          >
-            <span style={{ width: `${completionPct}%` }} />
+
+          <div className="completion-bar-row">
+            <div
+              className="completion-bar"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={total}
+              aria-valuenow={done}
+              aria-valuetext={`${done} de ${total} estudiantes han realizado esta tarea (${completionPct}%)`}
+              aria-label={`Cumplimiento del salón en ${task.titulo}`}
+            >
+              <span style={{ width: `${completionPct}%` }} />
+            </div>
+            <span className="completion-pct" aria-hidden="true">{completionPct}%</span>
           </div>
-          <span className="completion-pct" aria-hidden="true">{completionPct}%</span>
+
+          {showBreakdown && (
+            <div className="members-breakdown-list" role="region" aria-label={`Estado de estudiantes en ${task.titulo}`}>
+              {membersBreakdown.map(member => (
+                <div key={member.id} className="member-breakdown-item">
+                  <div className="member-breakdown-name">
+                    <strong>{member.nombre}</strong>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{member.email}</span>
+                  </div>
+                  <div>
+                    {member.estadoPersonal === 'finalizada' ? (
+                      <span className="badge badge-completed" style={{ fontSize: '0.72rem' }}>
+                        <Check size={12} aria-hidden="true" /> Realizada
+                      </span>
+                    ) : member.estadoPersonal === 'en_progreso' ? (
+                      <span className="badge badge-progress" style={{ fontSize: '0.72rem' }}>
+                        <PlayCircle size={12} aria-hidden="true" /> En Progreso
+                      </span>
+                    ) : (
+                      <span className="badge badge-pending" style={{ fontSize: '0.72rem' }}>
+                        <AlertTriangle size={12} aria-hidden="true" /> Pendiente
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Seguimiento individual del estudiante */}
+      {/* Seguimiento individual del estudiante (3 estados Scrum + Notas privadas) */}
       {currentUser && (
         <section className="personal-box" aria-labelledby={`personal-${task.id}`}>
           <h4 id={`personal-${task.id}`} className="personal-title">
-            <StickyNote size={15} aria-hidden="true" /> Mi seguimiento
+            <StickyNote size={15} aria-hidden="true" /> Mi seguimiento personal
             <span className="personal-private"><Lock size={12} aria-hidden="true" /> Privado</span>
           </h4>
 
-          <div className="personal-toggle" role="group" aria-label={`Mi estado en la tarea ${task.titulo}`}>
+          <div className="personal-toggle" role="group" aria-label={`Mi estado personal en la tarea ${task.titulo}`}>
             <button
               type="button"
-              className="btn btn-sm btn-secondary btn-done"
-              aria-pressed={myProgress.realizada}
-              onClick={() => setMyTaskDone(task.id, true)}
+              className={`btn btn-sm ${myProgress.estadoPersonal === 'pendiente' ? 'btn-primary' : 'btn-secondary'}`}
+              aria-pressed={myProgress.estadoPersonal === 'pendiente'}
+              onClick={() => setMyTaskStatus(task.id, 'pendiente')}
             >
-              <Check size={15} aria-hidden="true" />
-              <span>Ya la realicé</span>
+              <Clock size={14} aria-hidden="true" />
+              <span>Por realizar</span>
             </button>
+
             <button
               type="button"
-              className="btn btn-sm btn-secondary btn-notdone"
-              aria-pressed={!myProgress.realizada}
-              onClick={() => setMyTaskDone(task.id, false)}
+              className={`btn btn-sm ${myProgress.estadoPersonal === 'en_progreso' ? 'btn-primary' : 'btn-secondary'}`}
+              aria-pressed={myProgress.estadoPersonal === 'en_progreso'}
+              onClick={() => setMyTaskStatus(task.id, 'en_progreso')}
             >
-              <X size={15} aria-hidden="true" />
-              <span>No la he realizado</span>
+              <PlayCircle size={14} aria-hidden="true" />
+              <span>En progreso</span>
+            </button>
+
+            <button
+              type="button"
+              className={`btn btn-sm ${myProgress.estadoPersonal === 'finalizada' ? 'btn-primary' : 'btn-secondary'}`}
+              aria-pressed={myProgress.estadoPersonal === 'finalizada'}
+              onClick={() => setMyTaskStatus(task.id, 'finalizada')}
+            >
+              <Check size={14} aria-hidden="true" />
+              <span>Ya la realicé</span>
             </button>
           </div>
 
@@ -202,10 +320,11 @@ export const TaskCard = ({ task, subject }) => {
               className="select btn-sm"
               style={{ width: 'auto', fontWeight: 600 }}
               aria-label={`Cambiar estado oficial de ${task.titulo}`}
+              title="Estado oficial de la tarea para el salón"
             >
-              <option value="pendiente">Pendiente</option>
-              <option value="en_progreso">En Progreso</option>
-              <option value="finalizada">Finalizada</option>
+              <option value="pendiente">Oficial: Pendiente</option>
+              <option value="en_progreso">Oficial: En Progreso</option>
+              <option value="finalizada">Oficial: Finalizada</option>
             </select>
 
             <button
@@ -293,20 +412,31 @@ export const TaskCard = ({ task, subject }) => {
         }
         .completion-box {
           display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 0.6rem;
-          padding: 0.6rem 0.85rem;
+          flex-direction: column;
+          gap: 0.55rem;
+          padding: 0.65rem 0.85rem;
           background: var(--bg-surface-elevated);
           border: 1px solid var(--border-normal);
           border-radius: var(--radius-md);
-          font-size: 0.85rem;
+          font-size: 0.84rem;
+        }
+        .completion-top-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 0.5rem;
         }
         .completion-text {
           display: flex;
           align-items: center;
           gap: 0.4rem;
           color: var(--text-main);
+        }
+        .completion-bar-row {
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
         }
         .completion-bar {
           flex: 1;
@@ -323,6 +453,27 @@ export const TaskCard = ({ task, subject }) => {
           background: var(--status-completed-border);
         }
         .completion-pct { font-weight: 800; color: var(--text-main); }
+        .members-breakdown-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          margin-top: 0.25rem;
+          padding-top: 0.5rem;
+          border-top: 1px solid var(--border-subtle);
+        }
+        .member-breakdown-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.5rem;
+          padding: 0.35rem 0.5rem;
+          border-radius: var(--radius-sm);
+          background: var(--bg-surface);
+        }
+        .member-breakdown-name {
+          display: flex;
+          flex-direction: column;
+        }
         .personal-box {
           display: flex;
           flex-direction: column;
@@ -348,7 +499,7 @@ export const TaskCard = ({ task, subject }) => {
           font-weight: 600;
           color: var(--text-muted);
         }
-        .personal-toggle { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+        .personal-toggle { display: flex; flex-wrap: wrap; gap: 0.45rem; }
         .personal-notes { display: flex; flex-direction: column; gap: 0.35rem; }
         .personal-notes-actions {
           display: flex;

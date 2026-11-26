@@ -529,6 +529,32 @@ export const AuthGroupProvider = ({ children }) => {
     announce(`${target.nombre} ha sido retirado de la comunidad ${currentGroup.nombre}.`, 'assertive');
   };
 
+  // Actualizar datos generales del grupo actual (nombre, descripción, código de invitación)
+  const updateCurrentGroup = ({ nombre, descripcion, codigoInvitacion }) => {
+    if (!currentGroup || !isAdmin) return { success: false };
+    const cleanName = (nombre || '').trim();
+    const cleanCode = (codigoInvitacion || '').trim().toUpperCase();
+
+    if (!cleanName) {
+      announce('El nombre de la comunidad no puede estar vacío.', 'assertive');
+      return { success: false };
+    }
+
+    const nextGroups = groups.map(g => {
+      if (g.id !== currentGroup.id) return g;
+      return {
+        ...g,
+        nombre: cleanName,
+        descripcion: (descripcion || '').trim(),
+        codigoInvitacion: cleanCode || g.codigoInvitacion
+      };
+    });
+
+    setGroups(nextGroups);
+    announce(`Datos de la comunidad "${cleanName}" actualizados correctamente.`, 'polite');
+    return { success: true };
+  };
+
   // Grupo "destino" que se muestra en los diálogos de advertencia
   const pendingGroupSwitch =
     pendingAction?.type === 'join'
@@ -551,6 +577,7 @@ export const AuthGroupProvider = ({ children }) => {
       isPrimaryAdmin,
       toggleMemberAdminRole,
       removeMemberFromGroup,
+      updateCurrentGroup,
       requestJoinGroup,
       sendJoinRequest,
       cancelJoinRequest,

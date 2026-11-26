@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useTasks } from '../../context/TaskContext';
-import { Shield, UserPlus, Users, MessageCircle, Plus, Check, X, Crown, UserMinus } from 'lucide-react';
+import {
+  Shield,
+  UserPlus,
+  Users,
+  MessageCircle,
+  Plus,
+  Check,
+  X,
+  Crown,
+  UserMinus,
+  Edit3,
+  Trash2,
+  Save
+} from 'lucide-react';
 
 export const GroupAdminPanel = () => {
   const { 
@@ -11,13 +24,22 @@ export const GroupAdminPanel = () => {
     isPrimaryAdmin,
     toggleMemberAdminRole,
     removeMemberFromGroup,
+    updateCurrentGroup,
     approveJoinRequest, 
     rejectJoinRequest, 
     openTransferLeadershipModal
   } = useAuthGroup();
 
-  const { subjects, saveSubject } = useTasks();
+  const { subjects, saveSubject, deleteSubject } = useTasks();
 
+  // Estado para editar datos de la comunidad
+  const [isEditingGroup, setIsEditingGroup] = useState(false);
+  const [groupNombre, setGroupNombre] = useState('');
+  const [groupDescripcion, setGroupDescripcion] = useState('');
+  const [groupCodigo, setGroupCodigo] = useState('');
+
+  // Estado para crear o editar materia desde el Panel Admin
+  const [editingSubjectId, setEditingSubjectId] = useState(null);
   const [newSubjectName, setNewSubjectName] = useState('');
   const [newSubjectDocente, setNewSubjectDocente] = useState('');
   const [newSubjectWhatsapp, setNewSubjectWhatsapp] = useState('');
@@ -38,17 +60,56 @@ export const GroupAdminPanel = () => {
     );
   }
 
-  const handleAddSubject = (e) => {
+  const startEditGroup = () => {
+    setGroupNombre(currentGroup.nombre || '');
+    setGroupDescripcion(currentGroup.descripcion || '');
+    setGroupCodigo(currentGroup.codigoInvitacion || '');
+    setIsEditingGroup(true);
+  };
+
+  const handleSaveGroupData = (e) => {
+    e.preventDefault();
+    const res = updateCurrentGroup({
+      nombre: groupNombre,
+      descripcion: groupDescripcion,
+      codigoInvitacion: groupCodigo
+    });
+    if (res?.success) {
+      setIsEditingGroup(false);
+    }
+  };
+
+  const openNewSubjectForm = () => {
+    setEditingSubjectId(null);
+    setNewSubjectName('');
+    setNewSubjectDocente('');
+    setNewSubjectWhatsapp('https://chat.whatsapp.com/');
+    setNewSubjectColor('#2563eb');
+    setShowSubjectForm(true);
+  };
+
+  const openEditSubjectForm = (subj) => {
+    setEditingSubjectId(subj.id);
+    setNewSubjectName(subj.nombre || '');
+    setNewSubjectDocente(subj.docente || '');
+    setNewSubjectWhatsapp(subj.whatsappUrl || 'https://chat.whatsapp.com/');
+    setNewSubjectColor(subj.color || '#2563eb');
+    setShowSubjectForm(true);
+  };
+
+  const handleSaveSubject = (e) => {
     e.preventDefault();
     if (!newSubjectName.trim()) return;
 
     saveSubject({
+      id: editingSubjectId || undefined,
       nombre: newSubjectName.trim(),
       docente: newSubjectDocente.trim() || 'Docente Titular',
       whatsappUrl: newSubjectWhatsapp.trim() || 'https://chat.whatsapp.com/',
       color: newSubjectColor
     });
 
+    setEditingSubjectId(null);
     setNewSubjectName('');
     setNewSubjectDocente('');
     setNewSubjectWhatsapp('');
@@ -57,7 +118,7 @@ export const GroupAdminPanel = () => {
 
   return (
     <div className="admin-panel-container" role="region" aria-label="Panel de Administración del Grupo">
-      {/* Tarjeta de Información General */}
+      {/* Tarjeta de Información General y Edición del Grupo */}
       <div className="card admin-info-card">
         <div className="admin-header-row">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -68,22 +129,86 @@ export const GroupAdminPanel = () => {
               <h2 style={{ fontSize: '1.35rem', margin: 0 }}>Administración: {currentGroup.nombre}</h2>
               <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                 Código de invitación: <strong style={{ color: 'var(--text-main)', letterSpacing: '0.05em' }}>{currentGroup.codigoInvitacion}</strong>
+                {currentGroup.descripcion ? ` · ${currentGroup.descripcion}` : ''}
               </span>
             </div>
           </div>
 
-          {isPrimaryAdmin && (currentGroup.miembros?.length || 0) > 1 && (
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               type="button"
-              onClick={openTransferLeadershipModal}
+              onClick={() => (isEditingGroup ? setIsEditingGroup(false) : startEditGroup())}
               className="btn btn-sm btn-secondary"
-              aria-label="Ceder liderazgo principal de este grupo a otro compañero"
+              aria-expanded={isEditingGroup}
+              aria-label="Editar datos de la comunidad"
             >
-              <Crown size={15} aria-hidden="true" />
-              <span>Ceder Liderazgo Principal</span>
+              <Edit3 size={14} aria-hidden="true" />
+              <span>{isEditingGroup ? 'Cancelar Edición' : 'Editar Grupo'}</span>
             </button>
-          )}
+
+            {isPrimaryAdmin && (currentGroup.miembros?.length || 0) > 1 && (
+              <button
+                type="button"
+                onClick={openTransferLeadershipModal}
+                className="btn btn-sm btn-secondary"
+                aria-label="Ceder liderazgo principal de este grupo a otro compañero"
+              >
+                <Crown size={15} aria-hidden="true" />
+                <span>Ceder Liderazgo Principal</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {isEditingGroup && (
+          <form onSubmit={handleSaveGroupData} className="edit-group-box">
+            <h3 style={{ fontSize: '1rem', margin: '0 0 0.75rem' }}>✏️ Editar Información de la Comunidad</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div>
+                <label htmlFor="edit-group-name" className="label">Nombre de la Comunidad *</label>
+                <input
+                  id="edit-group-name"
+                  type="text"
+                  className="input"
+                  value={groupNombre}
+                  onChange={(e) => setGroupNombre(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-group-code" className="label">Código de Invitación *</label>
+                <input
+                  id="edit-group-code"
+                  type="text"
+                  className="input"
+                  value={groupCodigo}
+                  onChange={(e) => setGroupCodigo(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <div style={{ marginTop: '0.75rem' }}>
+              <label htmlFor="edit-group-desc" className="label">Descripción</label>
+              <input
+                id="edit-group-desc"
+                type="text"
+                className="input"
+                value={groupDescripcion}
+                onChange={(e) => setGroupDescripcion(e.target.value)}
+                placeholder="Descripción o especialidad del curso..."
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <button type="button" onClick={() => setIsEditingGroup(false)} className="btn btn-sm btn-secondary">
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-sm btn-primary">
+                <Save size={14} aria-hidden="true" />
+                <span>Guardar Cambios</span>
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
       <div className="admin-grid-layout">
@@ -207,14 +332,15 @@ export const GroupAdminPanel = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <MessageCircle size={18} color="#25d366" aria-hidden="true" />
             <h3 style={{ fontSize: '1.1rem', margin: 0 }}>
-              Materias Escolares y Enlaces Directos de WhatsApp
+              Materias Escolares y Enlaces Directos de WhatsApp ({subjects.length})
             </h3>
           </div>
 
           <button
             type="button"
-            onClick={() => setShowSubjectForm(prev => !prev)}
+            onClick={() => (showSubjectForm ? setShowSubjectForm(false) : openNewSubjectForm())}
             className="btn btn-sm btn-primary"
+            aria-expanded={showSubjectForm}
             aria-label="Agregar nueva materia al grupo"
           >
             <Plus size={15} aria-hidden="true" />
@@ -223,8 +349,10 @@ export const GroupAdminPanel = () => {
         </div>
 
         {showSubjectForm && (
-          <form onSubmit={handleAddSubject} className="subject-form-box">
-            <h4 style={{ fontSize: '0.95rem', margin: '0 0 0.75rem' }}>➕ Nueva Materia para el Grupo</h4>
+          <form onSubmit={handleSaveSubject} className="subject-form-box">
+            <h4 style={{ fontSize: '0.95rem', margin: '0 0 0.75rem' }}>
+              {editingSubjectId ? '✏️ Editar Materia del Grupo' : '➕ Nueva Materia para el Grupo'}
+            </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <div>
                 <label htmlFor="admin-subj-nombre-input" className="label">Nombre de Materia *</label>
@@ -276,7 +404,10 @@ export const GroupAdminPanel = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
               <button
                 type="button"
-                onClick={() => setShowSubjectForm(false)}
+                onClick={() => {
+                  setShowSubjectForm(false);
+                  setEditingSubjectId(null);
+                }}
                 className="btn btn-sm btn-secondary"
               >
                 Cancelar
@@ -285,7 +416,7 @@ export const GroupAdminPanel = () => {
                 type="submit"
                 className="btn btn-sm btn-primary"
               >
-                Guardar Materia
+                {editingSubjectId ? 'Guardar Cambios' : 'Guardar Materia'}
               </button>
             </div>
           </form>
@@ -298,36 +429,67 @@ export const GroupAdminPanel = () => {
                 <th scope="col">Materia</th>
                 <th scope="col">Docente</th>
                 <th scope="col">Acceso Rápido a WhatsApp</th>
+                <th scope="col">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {subjects.map(s => (
-                <tr key={s.id}>
-                  <td>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
-                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: s.color }} aria-hidden="true" />
-                      {s.nombre}
-                    </span>
-                  </td>
-                  <td>{s.docente}</td>
-                  <td>
-                    {s.whatsappUrl ? (
-                      <a
-                        href={s.whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-sm btn-whatsapp"
-                        aria-label={`Acceder al chat de WhatsApp de ${s.nombre}`}
-                      >
-                        <MessageCircle size={14} aria-hidden="true" />
-                        <span>Abrir Grupo</span>
-                      </a>
-                    ) : (
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Sin enlace</span>
-                    )}
+              {subjects.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '1.5rem' }}>
+                    Aún no hay materias registradas en esta comunidad.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                subjects.map(s => (
+                  <tr key={s.id}>
+                    <td>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
+                        <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: s.color }} aria-hidden="true" />
+                        {s.nombre}
+                      </span>
+                    </td>
+                    <td>{s.docente}</td>
+                    <td>
+                      {s.whatsappUrl ? (
+                        <a
+                          href={s.whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-sm btn-whatsapp"
+                          aria-label={`Acceder al chat de WhatsApp de ${s.nombre}`}
+                        >
+                          <MessageCircle size={14} aria-hidden="true" />
+                          <span>Abrir Grupo</span>
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Sin enlace</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => openEditSubjectForm(s)}
+                          className="btn btn-sm btn-secondary"
+                          aria-label={`Editar materia ${s.nombre}`}
+                        >
+                          <Edit3 size={13} aria-hidden="true" />
+                          <span>Editar</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => deleteSubject(s.id)}
+                          className="btn btn-sm btn-danger"
+                          aria-label={`Eliminar materia ${s.nombre}`}
+                        >
+                          <Trash2 size={13} aria-hidden="true" />
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -353,6 +515,11 @@ export const GroupAdminPanel = () => {
           background: rgba(234, 179, 8, 0.15);
           padding: 0.65rem;
           border-radius: var(--radius-md);
+        }
+        .edit-group-box {
+          margin-top: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid var(--border-subtle);
         }
         .admin-grid-layout {
           display: grid;

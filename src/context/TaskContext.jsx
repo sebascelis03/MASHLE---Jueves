@@ -5,16 +5,24 @@ import { useA11y } from './A11yContext';
 
 const TaskContext = createContext();
 
+const PRIORITY_WEIGHT = {
+  alta: 3,
+  media: 2,
+  baja: 1
+};
+
 export const TaskProvider = ({ children }) => {
   const { currentGroup, currentUser, isAdmin } = useAuthGroup();
   const { announce } = useA11y();
 
   const [tasks, setTasks] = useState(() => storageService.getTasks());
   const [subjects, setSubjects] = useState(() => storageService.getSubjects());
-  // Seguimiento individual: { "[userId]_[taskId]": { realizada, notasPersonales, fechaActualizacion } }
+  // Seguimiento individual:
+  // { "[userId]_[taskId]": { estadoPersonal: 'pendiente'|'en_progreso'|'finalizada', realizada: boolean, notasPersonales: string, fechaActualizacion: string } }
   const [userProgress, setUserProgress] = useState(() => storageService.getUserProgress());
   const [filterStatus, setFilterStatus] = useState('todos'); // 'todos' | 'pendiente' | 'en_progreso' | 'finalizada'
   const [filterSubject, setFilterSubject] = useState('todas');
+  const [filterPriority, setFilterPriority] = useState('todas'); // 'todas' | 'alta' | 'media' | 'baja'
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -35,15 +43,26 @@ export const TaskProvider = ({ children }) => {
     storageService.saveUserProgress(userProgress);
   }, [userProgress]);
 
-  // Filtrar tareas pertenecientes al grupo actual
-  const currentGroupTasks = tasks.filter(t => t.grupoId === currentGroup?.id);
+  // Filtrar y ordenar tareas pertenecientes al grupo actual (por fecha/hora más próxima y luego mayor prioridad)
+  const currentGroupTasks = tasks
+    .filter(t => t.grupoId === currentGroup?.id)
+    .sort((a, b) => {
+      const dateA = `${a.fechaEntrega || '9999-12-31'}T${a.horaEntrega || '23:59'}`;
+      const dateB = `${b.fechaEntrega || '9999-12-31'}T${b.horaEntrega || '23:59'}`;
+      if (dateA !== dateB) return dateA.localeCompare(dateB);
+      const prioA = PRIORITY_WEIGHT[a.prioridad || 'media'] || 2;
+      const prioB = PRIORITY_WEIGHT[b.prioridad || 'media'] || 2;
+      return prioB - prioA;
+    });
+
   const currentGroupSubjects = subjects.filter(s => s.grupoId === currentGroup?.id);
 
-  // Tareas filtradas por vista/criterio
+  // Tareas filtradas por materia, estado oficial y prioridad
   const filteredTasks = currentGroupTasks.filter(task => {
     const matchesStatus = filterStatus === 'todos' || task.estado === filterStatus;
     const matchesSubject = filterSubject === 'todas' || task.materiaId === filterSubject;
-    return matchesStatus && matchesSubject;
+    const matchesPriority = filterPriority === 'todas' || (task.prioridad || 'media') === filterPriority;
+    return matchesStatus && matchesSubject && matchesPriority;
   });
 
   // Crear o actualizar tarea
@@ -66,7 +85,8 @@ export const TaskProvider = ({ children }) => {
         id: `tsk-${Date.now()}`,
         grupoId: currentGroup.id,
         creadorId: currentUser.id,
-        estado: taskData.estado || 'pendiente'
+        estado: taskData.estado || 'pendiente',
+        prioridad: taskData.prioridad || 'media'
       };
       setTasks(prev => [newTask, ...prev]);
       announce(`Tarea "${newTask.titulo}" creada para el ${newTask.fechaEntrega}.`, 'polite');
@@ -93,7 +113,7 @@ export const TaskProvider = ({ children }) => {
     if (!task) return;
 
     setTasks(prev => prev.map(t => (t.id === taskId ? { ...t, estado: newStatus } : t)));
-    announce(`Tarea "${task.titulo}" ${statusLabels[newStatus] || newStatus}.`, 'polite');
+    announce(`Estado oficial de la tarea "${task.titulo}" ${statusLabels[newStatus] || newStatus}.`, 'polite');
   };
 
   // Eliminar tarea (solo administrador)
@@ -121,10 +141,20 @@ export const TaskProvider = ({ children }) => {
   /* ------------------ Seguimiento individual del estudiante ------------------ */
   const progressKey = (userId, taskId) => `${userId}_${taskId}`;
 
+  const resolvePersonalStatus = (entry) => {
+    if (!entry) return 'pendiente';
+    if (entry.estadoPersonal === 'pendiente' || entry.estadoPersonal === 'en_progreso' || entry.estadoPersonal === 'finalizada') {
+      return entry.estadoPersonal;
+    }
+    return entry.realizada ? 'finalizada' : 'pendiente';
+  };
+
   const getMyProgress = (taskId) => {
     const entry = currentUser ? userProgress[progressKey(currentUser.id, taskId)] : null;
+    const estadoPersonal = resolvePersonalStatus(entry);
     return {
-      realizada: Boolean(entry?.realizada),
+      estadoPersonal,
+      realizada: estadoPersonal === 'finalizada',
       notasPersonales: entry?.notasPersonales || '',
       fechaActualizacion: entry?.fechaActualizacion || null
     };
@@ -133,27 +163,45 @@ export const TaskProvider = ({ children }) => {
   const updateMyProgress = (taskId, patch) => {
     if (!currentUser) return;
     const key = progressKey(currentUser.id, taskId);
-    setUserProgress(prev => ({
-      ...prev,
-      [key]: {
-        realizada: Boolean(prev[key]?.realizada),
-        notasPersonales: prev[key]?.notasPersonales || '',
-        ...patch,
-        fechaActualizacion: new Date().toISOString()
-      }
-    }));
+    setUserProgress(prev => {
+      const currentEntry = prev[key];
+      const nextStatus =
+        patch.estadoPersonal ??
+        (typeof patch.realizada === 'boolean'
+          ? (patch.realizada ? 'finalizada' : 'pendiente')
+          : resolvePersonalStatus(currentEntry));
+
+      return {
+        ...prev,
+        [key]: {
+          notasPersonales: currentEntry?.notasPersonales || '',
+          ...patch,
+          estadoPersonal: nextStatus,
+          realizada: nextStatus === 'finalizada',
+          fechaActualizacion: new Date().toISOString()
+        }
+      };
+    });
   };
 
-  // "Ya la realicé" (true) / "No la he realizado" (false)
-  const setMyTaskDone = (taskId, realizada) => {
+  // Cambiar estado personal entre los 3 estados del Tablero Scrum ('pendiente' | 'en_progreso' | 'finalizada')
+  const setMyTaskStatus = (taskId, estadoPersonal) => {
     const task = tasks.find(t => t.id === taskId);
-    updateMyProgress(taskId, { realizada });
+    updateMyProgress(taskId, { estadoPersonal });
+    const labels = {
+      pendiente: 'Por realizar (Pendiente)',
+      en_progreso: 'En progreso',
+      finalizada: 'Realizada (Finalizada)'
+    };
     announce(
-      realizada
-        ? `Marcaste la tarea "${task?.titulo}" como realizada.`
-        : `Marcaste la tarea "${task?.titulo}" como no realizada.`,
+      `Tu estado personal en "${task?.titulo}" cambió a: ${labels[estadoPersonal] || estadoPersonal}.`,
       'polite'
     );
+  };
+
+  // Compatibilidad directa booleana ("Ya la realicé" / "No la he realizado")
+  const setMyTaskDone = (taskId, realizada) => {
+    setMyTaskStatus(taskId, realizada ? 'finalizada' : 'pendiente');
   };
 
   const saveMyNotes = (taskId, notasPersonales) => {
@@ -162,16 +210,43 @@ export const TaskProvider = ({ children }) => {
     announce(`Notas personales guardadas para "${task?.titulo}".`, 'polite');
   };
 
-  // Métrica para el administrador: cuántos miembros del salón realizaron la tarea
+  // Métrica y desglose nominal para el administrador: estado de cada miembro del salón en la tarea
   const getTaskCompletion = (taskId) => {
     const members = currentGroup?.miembros || [];
-    const done = members.filter(m => userProgress[progressKey(m.id, taskId)]?.realizada).length;
-    return { done, total: members.length };
+    const membersBreakdown = members.map(m => {
+      const entry = userProgress[progressKey(m.id, taskId)];
+      const estadoPersonal = resolvePersonalStatus(entry);
+      return {
+        id: m.id,
+        nombre: m.nombre,
+        email: m.email,
+        rol: m.rol,
+        estadoPersonal,
+        realizada: estadoPersonal === 'finalizada',
+        fechaActualizacion: entry?.fechaActualizacion || null
+      };
+    });
+
+    const done = membersBreakdown.filter(m => m.estadoPersonal === 'finalizada').length;
+    const inProgress = membersBreakdown.filter(m => m.estadoPersonal === 'en_progreso').length;
+    const pending = membersBreakdown.filter(m => m.estadoPersonal === 'pendiente').length;
+
+    return {
+      done,
+      inProgress,
+      pending,
+      total: members.length,
+      membersBreakdown
+    };
   };
 
   // Crear o actualizar materia (incluyendo enlace de WhatsApp directo)
   const saveSubject = (subjectData) => {
     if (!currentGroup) return;
+    if (!isAdmin) {
+      announce('Solo el administrador puede crear o editar materias del grupo.', 'assertive');
+      return;
+    }
 
     if (subjectData.id) {
       setSubjects(prev => prev.map(s => s.id === subjectData.id ? { ...s, ...subjectData } : s));
@@ -194,6 +269,13 @@ export const TaskProvider = ({ children }) => {
     }
     const subj = subjects.find(s => s.id === subjectId);
     setSubjects(prev => prev.filter(s => s.id !== subjectId));
+    // Desasociar tareas que apuntaban a la materia eliminada para que no queden huérfanas
+    setTasks(prev =>
+      prev.map(t => (t.materiaId === subjectId ? { ...t, materiaId: '' } : t))
+    );
+    if (filterSubject === subjectId) {
+      setFilterSubject('todas');
+    }
     if (subj) {
       announce(`Materia "${subj.nombre}" eliminada.`, 'assertive');
     }
@@ -208,6 +290,8 @@ export const TaskProvider = ({ children }) => {
       setFilterStatus,
       filterSubject,
       setFilterSubject,
+      filterPriority,
+      setFilterPriority,
       selectedDate,
       setSelectedDate,
       isTaskModalOpen,
@@ -221,6 +305,7 @@ export const TaskProvider = ({ children }) => {
       deleteSubject,
       canManageTasks: isAdmin,
       getMyProgress,
+      setMyTaskStatus,
       setMyTaskDone,
       saveMyNotes,
       getTaskCompletion
