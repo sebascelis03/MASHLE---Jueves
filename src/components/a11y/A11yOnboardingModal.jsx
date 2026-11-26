@@ -341,6 +341,7 @@ const OnboardingContent = () => {
                   <li><kbd>Alt + N</kbd> Nueva tarea (administradores)</li>
                   <li><kbd>Alt + C</kbd> Ir al calendario</li>
                   <li><kbd>Alt + L</kbd> Ir a la agenda / lista</li>
+                  <li><kbd>Alt + M</kbd> Ir a materias y WhatsApp</li>
                   <li><kbd>Esc</kbd> Cerrar ventanas</li>
                 </ul>
               </div>

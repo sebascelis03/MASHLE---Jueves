@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useTasks } from '../../context/TaskContext';
-import { Shield, UserPlus, Users, MessageCircle, Plus, Check, X, Crown } from 'lucide-react';
+import { Shield, UserPlus, Users, MessageCircle, Plus, Check, X, Crown, UserMinus } from 'lucide-react';
 
 export const GroupAdminPanel = () => {
   const { 
     currentGroup, 
+    currentUser,
     isAdmin,
     isPrimaryAdmin,
     toggleMemberAdminRole,
+    removeMemberFromGroup,
     approveJoinRequest, 
     rejectJoinRequest, 
-    setIsSuccessionModalOpen
+    openTransferLeadershipModal
   } = useAuthGroup();
 
   const { subjects, saveSubject } = useTasks();
@@ -28,7 +30,9 @@ export const GroupAdminPanel = () => {
         <Shield size={36} color="#94a3b8" style={{ marginBottom: '0.75rem' }} />
         <h2 style={{ fontSize: '1.25rem' }}>Panel Reservado para Administradores del Grupo</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '450px', margin: '0.5rem auto 0' }}>
-          Actualmente eres un estudiante miembro en esta comunidad escolar. Los administradores pueden gestionar miembros, solicitudes y materias.
+          {currentGroup
+            ? 'Actualmente eres un estudiante miembro en esta comunidad escolar. Los administradores pueden gestionar miembros, solicitudes y materias.'
+            : 'Aún no perteneces a ninguna comunidad escolar. Ve a la pestaña Mi Comunidad para crear un grupo o unirte a uno.'}
         </p>
       </div>
     );
@@ -68,12 +72,12 @@ export const GroupAdminPanel = () => {
             </div>
           </div>
 
-          {isPrimaryAdmin && (
+          {isPrimaryAdmin && (currentGroup.miembros?.length || 0) > 1 && (
             <button
               type="button"
-              onClick={() => setIsSuccessionModalOpen(true)}
+              onClick={openTransferLeadershipModal}
               className="btn btn-sm btn-secondary"
-              aria-label="Ceder administración principal de este grupo"
+              aria-label="Ceder liderazgo principal de este grupo a otro compañero"
             >
               <Crown size={15} aria-hidden="true" />
               <span>Ceder Liderazgo Principal</span>
@@ -143,12 +147,13 @@ export const GroupAdminPanel = () => {
           <div className="members-list">
             {currentGroup.miembros?.map(member => {
               const isOwner = member.id === currentGroup.adminId;
+              const isMe = member.id === currentUser?.id;
               const isMemberAdmin = isOwner || member.rol === 'admin';
 
               return (
                 <div key={member.id} className="member-item">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
                       <strong>{member.nombre}</strong>
                       {isOwner ? (
                         <span className="badge badge-pending" style={{ fontSize: '0.68rem', background: '#eab308', color: '#000', fontWeight: 700 }}>
@@ -163,17 +168,31 @@ export const GroupAdminPanel = () => {
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{member.email}</div>
                   </div>
 
-                  {isPrimaryAdmin && !isOwner && (
-                    <button
-                      type="button"
-                      onClick={() => toggleMemberAdminRole(member.id)}
-                      className={`btn btn-sm ${isMemberAdmin ? 'btn-secondary' : 'btn-primary'}`}
-                      aria-label={isMemberAdmin ? `Quitar administrador a ${member.nombre}` : `Hacer administrador a ${member.nombre}`}
-                      title={isMemberAdmin ? "Remover permisos de admin" : "Dar permisos de admin"}
-                    >
-                      <Crown size={13} aria-hidden="true" />
-                      <span>{isMemberAdmin ? 'Quitar Admin' : 'Hacer Co-Admin'}</span>
-                    </button>
+                  {!isOwner && !isMe && (
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {isPrimaryAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => toggleMemberAdminRole(member.id)}
+                          className={`btn btn-sm ${isMemberAdmin ? 'btn-secondary' : 'btn-primary'}`}
+                          aria-label={isMemberAdmin ? `Quitar administrador a ${member.nombre}` : `Hacer administrador a ${member.nombre}`}
+                          title={isMemberAdmin ? "Remover permisos de admin" : "Dar permisos de admin"}
+                        >
+                          <Crown size={13} aria-hidden="true" />
+                          <span>{isMemberAdmin ? 'Quitar Admin' : 'Hacer Co-Admin'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeMemberFromGroup(member.id)}
+                        className="btn btn-sm btn-danger"
+                        aria-label={`Retirar a ${member.nombre} de la comunidad`}
+                        title="Retirar estudiante del grupo"
+                      >
+                        <UserMinus size={13} aria-hidden="true" />
+                        <span>Retirar</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               );
@@ -208,9 +227,9 @@ export const GroupAdminPanel = () => {
             <h4 style={{ fontSize: '0.95rem', margin: '0 0 0.75rem' }}>➕ Nueva Materia para el Grupo</h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
               <div>
-                <label htmlFor="subj-nombre-input" className="label">Nombre de Materia *</label>
+                <label htmlFor="admin-subj-nombre-input" className="label">Nombre de Materia *</label>
                 <input
-                  id="subj-nombre-input"
+                  id="admin-subj-nombre-input"
                   type="text"
                   className="input"
                   placeholder="Ej. Redes y Comunicaciones"
@@ -220,9 +239,9 @@ export const GroupAdminPanel = () => {
                 />
               </div>
               <div>
-                <label htmlFor="subj-docente-input" className="label">Docente</label>
+                <label htmlFor="admin-subj-docente-input" className="label">Docente</label>
                 <input
-                  id="subj-docente-input"
+                  id="admin-subj-docente-input"
                   type="text"
                   className="input"
                   placeholder="Ej. Mg. Juan Pérez"
@@ -231,9 +250,9 @@ export const GroupAdminPanel = () => {
                 />
               </div>
               <div>
-                <label htmlFor="subj-whatsapp-input" className="label">Enlace de Grupo WhatsApp</label>
+                <label htmlFor="admin-subj-whatsapp-input" className="label">Enlace de Grupo WhatsApp</label>
                 <input
-                  id="subj-whatsapp-input"
+                  id="admin-subj-whatsapp-input"
                   type="url"
                   className="input"
                   placeholder="https://chat.whatsapp.com/..."
@@ -242,9 +261,9 @@ export const GroupAdminPanel = () => {
                 />
               </div>
               <div>
-                <label htmlFor="subj-color-input" className="label">Color Distintivo</label>
+                <label htmlFor="admin-subj-color-input" className="label">Color Distintivo</label>
                 <input
-                  id="subj-color-input"
+                  id="admin-subj-color-input"
                   type="color"
                   className="input"
                   style={{ height: '42px', padding: '4px' }}
@@ -354,6 +373,7 @@ export const GroupAdminPanel = () => {
           border: 1px solid var(--border-subtle);
           border-radius: var(--radius-md);
           gap: 0.75rem;
+          flex-wrap: wrap;
         }
         .subject-form-box {
           background: var(--bg-surface-elevated);

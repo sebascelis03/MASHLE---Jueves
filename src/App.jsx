@@ -30,11 +30,12 @@ import {
   Plus, 
   GraduationCap, 
   Crown,
-  LogOut
+  LogOut,
+  ArrowRight
 } from 'lucide-react';
 
 const MainLayout = () => {
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'community' | 'admin'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'subjects' | 'community' | 'admin'
   const { currentGroup, currentUser, isAdmin, isAuthenticated, logout } = useAuthGroup();
   const { setIsTaskModalOpen, setEditingTask } = useTasks();
   const { announce } = useA11y();
@@ -236,13 +237,36 @@ const MainLayout = () => {
           <AuthView />
         ) : (
           <>
+            {/* Banner guía cuando el usuario autenticado aún no pertenece a un grupo */}
+            {!currentGroup && activeTab !== 'community' && (
+              <div className="card no-group-banner" role="status">
+                <div>
+                  <strong style={{ fontSize: '1.05rem', display: 'block', marginBottom: '0.2rem' }}>
+                    👋 Aún no perteneces a ninguna comunidad estudiantil
+                  </strong>
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                    Para registrar o ver tareas, materias y enlaces de WhatsApp, primero únete a un grupo existente o crea una nueva comunidad.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('community', 'Mi Comunidad')}
+                  className="btn btn-primary"
+                >
+                  <Users size={16} aria-hidden="true" />
+                  <span>Ir a Mi Comunidad</span>
+                  <ArrowRight size={15} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+
             {activeTab === 'calendar' && (
               <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar">
                 <div className="calendar-layout-view">
                   <CalendarGrid />
                   <div style={{ marginTop: '1.5rem' }}>
                     <h3 style={{ fontSize: '1.15rem', marginBottom: '0.75rem' }}>📋 Tareas del Día y Próximas</h3>
-                    <AgendaView />
+                    <AgendaView fromCalendarView />
                   </div>
                 </div>
               </div>
@@ -408,6 +432,16 @@ const MainLayout = () => {
           padding: 1.5rem 1.25rem;
           flex: 1;
           outline: none;
+        }
+        .no-group-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          margin-bottom: 1.25rem;
+          border-left: 5px solid var(--primary-500);
+          background: linear-gradient(135deg, var(--bg-surface), var(--bg-surface-elevated));
         }
         .app-footer {
           margin-top: auto;

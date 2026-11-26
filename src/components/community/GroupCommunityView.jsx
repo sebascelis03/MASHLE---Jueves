@@ -1,34 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
-import { Users, Plus, CheckCircle2, ArrowRight, LogOut } from 'lucide-react';
+import { Users, Plus, CheckCircle2, ArrowRight, LogOut, KeyRound, Send, Clock, X } from 'lucide-react';
 
 export const GroupCommunityView = () => {
-  const { groups, currentGroup, currentUser, isAdmin, requestJoinGroup, createNewGroup, requestLeaveGroup } = useAuthGroup();
+  const {
+    groups,
+    currentGroup,
+    currentUser,
+    isAdmin,
+    requestJoinGroup,
+    sendJoinRequest,
+    cancelJoinRequest,
+    joinGroupByCode,
+    createNewGroup,
+    requestLeaveGroup
+  } = useAuthGroup();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [nombre, setNombre] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [codigoInvitacion, setCodigoInvitacion] = useState('');
 
-  // Cuando el usuario cambia efectivamente de grupo, se limpia y cierra el formulario
-  useEffect(() => {
-    setNombre('');
-    setDescripcion('');
-    setCodigoInvitacion('');
-    setShowCreateForm(false);
-  }, [currentGroup?.id]);
+  // Ingreso rápido por código de invitación
+  const [inviteCodeInput, setInviteCodeInput] = useState('');
+  const [codeMessage, setCodeMessage] = useState(null);
 
-  // Si ya hay grupo, createNewGroup abre el aviso/sucesión y el formulario se conserva
-  // por si el usuario cancela.
   const handleCreate = (e) => {
     e.preventDefault();
     if (!nombre.trim()) return;
 
-    createNewGroup({
+    const res = createNewGroup({
       nombre: nombre.trim(),
       descripcion: descripcion.trim(),
       codigoInvitacion: codigoInvitacion.trim().toUpperCase()
     });
+
+    if (!res?.pending) {
+      setNombre('');
+      setDescripcion('');
+      setCodigoInvitacion('');
+      setShowCreateForm(false);
+    }
+  };
+
+  const handleJoinByCode = (e) => {
+    e.preventDefault();
+    setCodeMessage(null);
+    const res = joinGroupByCode(inviteCodeInput);
+    if (!res.success) {
+      setCodeMessage({ type: 'error', text: res.error });
+    } else {
+      setInviteCodeInput('');
+      setCodeMessage({ type: 'success', text: `Código válido para "${res.group.nombre}".` });
+    }
   };
 
   return (
@@ -45,7 +69,9 @@ export const GroupCommunityView = () => {
               {currentGroup ? currentGroup.nombre : 'Sin grupo asignado'}
             </h2>
             <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              {currentGroup ? currentGroup.descripcion : 'Únete a un grupo escolar para ver tareas y participar.'}
+              {currentGroup
+                ? `${currentGroup.descripcion || 'Comunidad estudiantil activa.'} · Código: ${currentGroup.codigoInvitacion}`
+                : 'Únete a un grupo con código de invitación, envía una solicitud o crea una nueva comunidad.'}
             </p>
           </div>
         </div>
@@ -74,6 +100,53 @@ export const GroupCommunityView = () => {
           )}
         </div>
       </div>
+
+      {/* Tarjeta de unión directa por Código de Invitación */}
+      <form onSubmit={handleJoinByCode} className="card join-code-card" aria-label="Unirse con código de invitación">
+        <div className="join-code-info">
+          <KeyRound size={20} color="#38bdf8" aria-hidden="true" />
+          <div>
+            <h3 style={{ fontSize: '1rem', margin: 0 }}>🔑 ¿Tienes un Código de Invitación?</h3>
+            <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', margin: '0.15rem 0 0' }}>
+              Ingresa el código del curso para unirte de inmediato sin esperar aprobación manual.
+            </p>
+          </div>
+        </div>
+
+        <div className="join-code-controls">
+          <label htmlFor="invite-code-input" className="sr-only">Código de invitación del grupo</label>
+          <input
+            id="invite-code-input"
+            type="text"
+            className="input"
+            placeholder="Ej. COD-1234 o G11B-2026"
+            value={inviteCodeInput}
+            onChange={(e) => {
+              setInviteCodeInput(e.target.value);
+              if (codeMessage) setCodeMessage(null);
+            }}
+            style={{ maxWidth: '220px' }}
+          />
+          <button type="submit" className="btn btn-secondary">
+            <span>Ingresar con Código</span>
+            <ArrowRight size={15} aria-hidden="true" />
+          </button>
+        </div>
+
+        {codeMessage && (
+          <div
+            role={codeMessage.type === 'error' ? 'alert' : 'status'}
+            style={{
+              width: '100%',
+              fontSize: '0.84rem',
+              color: codeMessage.type === 'error' ? '#f87171' : '#34d399',
+              marginTop: '0.35rem'
+            }}
+          >
+            {codeMessage.text}
+          </div>
+        )}
+      </form>
 
       {/* Formulario de creación de comunidad */}
       {showCreateForm && (
@@ -142,62 +215,112 @@ export const GroupCommunityView = () => {
       )}
 
       {/* Explorador de grupos disponibles */}
-      <h3 style={{ fontSize: '1.2rem', margin: '1rem 0 0.5rem' }}>Explorar Comunidades Estudiantiles</h3>
-      <div className="groups-grid">
-        {groups.map(group => {
-          const isMyGroup = currentGroup?.id === group.id;
-          const isUserAdmin = group.adminId === currentUser?.id;
+      <h3 style={{ fontSize: '1.2rem', margin: '0.5rem 0 0.25rem' }}>Explorar Comunidades Estudiantiles ({groups.length})</h3>
+      {groups.length === 0 ? (
+        <div className="card" role="status" style={{ textAlign: 'center', padding: '2.5rem 1.5rem' }}>
+          <p style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 0.4rem' }}>
+            🏫 Aún no hay comunidades estudiantiles creadas.
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem' }}>
+            Haz clic en <strong>Crear Nueva Comunidad</strong> para fundar el primer grupo escolar y gestionar su calendario.
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCreateForm(true)}
+            className="btn btn-primary"
+          >
+            <Plus size={16} aria-hidden="true" />
+            <span>Crear Primera Comunidad</span>
+          </button>
+        </div>
+      ) : (
+        <div className="groups-grid">
+          {groups.map(group => {
+            const isMyGroup = currentGroup?.id === group.id;
+            const memberEntry = group.miembros.find(m => m.id === currentUser?.id);
+            const isUserAdmin = group.adminId === currentUser?.id || memberEntry?.rol === 'admin';
+            const hasPendingRequest = (group.solicitudesPendientes || []).some(s => s.id === currentUser?.id);
 
-          return (
-            <div 
-              key={group.id} 
-              className={`card group-card ${isMyGroup ? 'active-group-card' : ''}`}
-            >
-              <div className="group-card-header">
-                <div>
-                  <h4 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-main)' }}>
-                    {group.nombre}
-                  </h4>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                    Código: <strong>{group.codigoInvitacion}</strong>
-                  </span>
+            return (
+              <div 
+                key={group.id} 
+                className={`card group-card ${isMyGroup ? 'active-group-card' : ''}`}
+              >
+                <div className="group-card-header">
+                  <div>
+                    <h4 style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-main)' }}>
+                      {group.nombre}
+                    </h4>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                      Código: <strong>{group.codigoInvitacion}</strong>
+                    </span>
+                  </div>
+                  {isMyGroup ? (
+                    <span className="badge badge-completed" style={{ fontSize: '0.7rem' }}>
+                      <CheckCircle2 size={12} aria-hidden="true" /> Tu Grupo
+                    </span>
+                  ) : hasPendingRequest ? (
+                    <span className="badge badge-pending" style={{ fontSize: '0.7rem' }}>
+                      <Clock size={12} aria-hidden="true" /> Solicitud enviada
+                    </span>
+                  ) : null}
                 </div>
-                {isMyGroup && (
-                  <span className="badge badge-completed" style={{ fontSize: '0.7rem' }}>
-                    <CheckCircle2 size={12} aria-hidden="true" /> Tu Grupo
+
+                <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '0.5rem 0', flex: 1 }}>
+                  {group.descripcion || 'Comunidad estudiantil cerrada.'}
+                </p>
+
+                <div className="group-card-footer">
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                    👥 {group.miembros.length} estudiante{group.miembros.length === 1 ? '' : 's'}
                   </span>
-                )}
+
+                  {isMyGroup ? (
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isUserAdmin ? '#eab308' : '#3b82f6' }}>
+                      {isUserAdmin ? '👑 Administrador' : '🎒 Estudiante Miembro'}
+                    </span>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {hasPendingRequest ? (
+                        <button
+                          type="button"
+                          onClick={() => cancelJoinRequest(group.id)}
+                          className="btn btn-sm btn-secondary"
+                          aria-label={`Cancelar solicitud enviada a ${group.nombre}`}
+                        >
+                          <X size={13} aria-hidden="true" />
+                          <span>Cancelar Solicitud</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => sendJoinRequest(group.id)}
+                          className="btn btn-sm btn-secondary"
+                          aria-label={`Enviar solicitud de acceso al administrador de ${group.nombre}`}
+                          title="El administrador del grupo podrá aprobar tu solicitud en el Panel Admin"
+                        >
+                          <Send size={13} aria-hidden="true" />
+                          <span>Solicitar Acceso</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => requestJoinGroup(group.id)}
+                        className="btn btn-sm btn-primary"
+                        aria-label={currentGroup ? `Unirme directamente a la comunidad ${group.nombre} y salir de mi grupo actual` : `Unirme directamente a la comunidad ${group.nombre}`}
+                      >
+                        <span>Unirme Ahora</span>
+                        <ArrowRight size={14} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-
-              <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', margin: '0.5rem 0', flex: 1 }}>
-                {group.descripcion}
-              </p>
-
-              <div className="group-card-footer">
-                <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-                  👥 {group.miembros.length} estudiantes
-                </span>
-
-                {isMyGroup ? (
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: isUserAdmin ? '#eab308' : '#3b82f6' }}>
-                    {isUserAdmin ? '👑 Administrador' : '🎒 Estudiante Miembro'}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => requestJoinGroup(group.id)}
-                    className="btn btn-sm btn-secondary"
-                    aria-label={currentGroup ? `Unirme a la comunidad ${group.nombre} y salir de mi grupo actual` : `Unirme a la comunidad ${group.nombre}`}
-                  >
-                    <span>Unirme a este Grupo</span>
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       <style>{`
         .community-view-container {
@@ -235,6 +358,27 @@ export const GroupCommunityView = () => {
           letter-spacing: 0.05em;
           color: var(--primary-500);
         }
+        .join-code-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
+          background-color: var(--bg-surface);
+          border: 1px solid var(--border-normal);
+        }
+        .join-code-info {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+        .join-code-controls {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+        }
         .create-community-card {
           border-color: var(--primary-500);
           animation: slideUp 150ms ease-out;
@@ -268,6 +412,8 @@ export const GroupCommunityView = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 0.5rem;
           margin-top: 1rem;
           padding-top: 0.75rem;
           border-top: 1px solid var(--border-subtle);

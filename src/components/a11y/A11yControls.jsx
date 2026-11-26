@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useA11y } from '../../context/A11yContext';
+import { FocusTrap } from './FocusTrap';
 import { Eye, Type, Wifi, WifiOff, Keyboard } from 'lucide-react';
 
 export const A11yControls = () => {
@@ -113,6 +114,7 @@ export const A11yControls = () => {
           type="button"
           onClick={() => setShowShortcutsModal(prev => !prev)}
           className="btn btn-sm btn-secondary"
+          aria-expanded={showShortcutsModal}
           aria-label="Ver atajos de teclado accesibles"
           title="Atajos de Teclado"
         >
@@ -122,26 +124,33 @@ export const A11yControls = () => {
       </div>
 
       {showShortcutsModal && (
-        <div className="shortcuts-tooltip card" role="dialog" aria-label="Lista de atajos de teclado">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h3 style={{ fontSize: '0.95rem', margin: 0 }}>⌨️ Atajos de Teclado</h3>
-            <button 
-              type="button" 
-              className="btn btn-sm btn-secondary" 
-              onClick={() => setShowShortcutsModal(false)}
-              aria-label="Cerrar ventana de atajos"
-            >
-              ✕
-            </button>
+        <FocusTrap
+          role="dialog"
+          ariaLabel="Lista de atajos de teclado"
+          onClose={() => setShowShortcutsModal(false)}
+        >
+          <div className="shortcuts-tooltip card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '0.95rem', margin: 0 }}>⌨️ Atajos de Teclado</h3>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-secondary" 
+                onClick={() => setShowShortcutsModal(false)}
+                aria-label="Cerrar ventana de atajos"
+              >
+                ✕
+              </button>
+            </div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
+              <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
+              <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
+              <li><kbd>Alt + L</kbd>: Ir a vista Tablero &amp; Lista</li>
+              <li><kbd>Alt + M</kbd>: Ir a vista Materias &amp; WhatsApp</li>
+              <li><kbd>Escape</kbd>: Cerrar cualquier ventana o modal</li>
+            </ul>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
-            <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
-            <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
-            <li><kbd>Alt + L</kbd>: Ir a vista Lista / Agenda</li>
-            <li><kbd>Escape</kbd>: Cerrar cualquier ventana o modal</li>
-          </ul>
-        </div>
+        </FocusTrap>
       )}
 
       <style>{`
@@ -220,7 +229,7 @@ export const A11yControls = () => {
           top: 100%;
           right: 1rem;
           margin-top: 0.5rem;
-          width: 290px;
+          width: 310px;
           z-index: 100;
           box-shadow: var(--shadow-lg);
           border: 1px solid var(--border-focus);
