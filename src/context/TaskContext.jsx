@@ -43,6 +43,20 @@ export const TaskProvider = ({ children }) => {
     storageService.saveUserProgress(userProgress);
   }, [userProgress]);
 
+  // Escuchar recarga global cuando se carga el Escenario Demo o se reinician datos
+  useEffect(() => {
+    const handleDataReload = () => {
+      setTasks(storageService.getTasks());
+      setSubjects(storageService.getSubjects());
+      setUserProgress(storageService.getUserProgress());
+      setFilterStatus('todos');
+      setFilterSubject('todas');
+      setFilterPriority('todas');
+    };
+    window.addEventListener('cal_estudiantil_data_reload', handleDataReload);
+    return () => window.removeEventListener('cal_estudiantil_data_reload', handleDataReload);
+  }, []);
+
   // Filtrar y ordenar tareas pertenecientes al grupo actual (por fecha/hora más próxima y luego mayor prioridad)
   const currentGroupTasks = tasks
     .filter(t => t.grupoId === currentGroup?.id)

@@ -555,6 +555,91 @@ export const AuthGroupProvider = ({ children }) => {
     return { success: true };
   };
 
+  // Actualizar perfil del usuario autenticado (nombre y/o contraseña)
+  const updateMyProfile = ({ nombre, password }) => {
+    if (!currentUser) return { success: false, error: 'No hay sesión activa.' };
+    const cleanName = (nombre || '').trim();
+    if (!cleanName) {
+      announce('El nombre no puede estar vacío.', 'assertive');
+      return { success: false, error: 'El nombre no puede estar vacío.' };
+    }
+    if (password && password.length < 4) {
+      announce('La nueva contraseña debe tener al menos 4 caracteres.', 'assertive');
+      return { success: false, error: 'La contraseña debe tener al menos 4 caracteres.' };
+    }
+
+    const updatedUser = {
+      ...currentUser,
+      nombre: cleanName,
+      ...(password ? { password } : {})
+    };
+
+    // Sincronizar también el nombre dentro de los miembros y solicitudes de los grupos
+    const nextGroups = groups.map(g => ({
+      ...g,
+      miembros: (g.miembros || []).map(m => (m.id === currentUser.id ? { ...m, nombre: cleanName } : m)),
+      solicitudesPendientes: (g.solicitudesPendientes || []).map(s =>
+        s.id === currentUser.id ? { ...s, nombre: cleanName } : s
+      )
+    }));
+
+    setGroups(nextGroups);
+    setCurrentUser(updatedUser);
+    storageService.updateUser(updatedUser);
+    announce(`Perfil actualizado correctamente. Nombre actual: ${cleanName}.`, 'polite');
+    return { success: true };
+  };
+
+  // Cambio rápido de cuenta en 1 clic para demostraciones en vivo
+  const quickSwitchAccount = (accountIdOrUsername) => {
+    const allUsers = storageService.getUsers();
+    const target = allUsers.find(
+      u => u.id === accountIdOrUsername || u.username === accountIdOrUsername
+    );
+    if (!target) return { success: false };
+
+    const resolved = resolveUserMembership(target, groups);
+    setCurrentUser(resolved);
+    setPendingAction(null);
+    setIsSwitchWarningOpen(false);
+    setIsSuccessionModalOpen(false);
+    announce(`Cambiado rápidamente a la cuenta ${resolved.nombre} (${resolved.username}).`, 'polite');
+    return { success: true, user: resolved };
+  };
+
+  // Cargar escenario de demostración completo para sustentación
+  const loadDemoData = (autoLoginUsername = 'admin1') => {
+    const { users: demoUsers, groups: demoGroups } = storageService.loadDemoScenario();
+    setGroups(demoGroups);
+
+    const targetUser =
+      (autoLoginUsername && demoUsers.find(u => u.username === autoLoginUsername)) ||
+      (currentUser && demoUsers.find(u => u.id === currentUser.id)) ||
+      demoUsers[0];
+
+    const resolved = resolveUserMembership(targetUser, demoGroups);
+    setCurrentUser(resolved);
+    window.dispatchEvent(new CustomEvent('cal_estudiantil_data_reload'));
+    announce(
+      `Escenario de demostración cargado con éxito. Conectado como ${resolved.nombre} en la comunidad Ingeniería de Software.`,
+      'assertive'
+    );
+    return { success: true };
+  };
+
+  // Reiniciar el sistema en blanco (7 cuentas sin grupos ni tareas)
+  const resetSystemData = () => {
+    const { users: cleanUsers, groups: cleanGroups } = storageService.resetAllData();
+    setGroups(cleanGroups);
+    if (currentUser) {
+      const refreshed = cleanUsers.find(u => u.id === currentUser.id) || null;
+      setCurrentUser(refreshed ? { ...refreshed, grupoId: null } : null);
+    }
+    window.dispatchEvent(new CustomEvent('cal_estudiantil_data_reload'));
+    announce('Datos reiniciados en blanco. Las 7 cuentas base están listas sin grupos ni tareas.', 'assertive');
+    return { success: true };
+  };
+
   // Grupo "destino" que se muestra en los diálogos de advertencia
   const pendingGroupSwitch =
     pendingAction?.type === 'join'
@@ -578,6 +663,10 @@ export const AuthGroupProvider = ({ children }) => {
       toggleMemberAdminRole,
       removeMemberFromGroup,
       updateCurrentGroup,
+      updateMyProfile,
+      quickSwitchAccount,
+      loadDemoData,
+      resetSystemData,
       requestJoinGroup,
       sendJoinRequest,
       cancelJoinRequest,

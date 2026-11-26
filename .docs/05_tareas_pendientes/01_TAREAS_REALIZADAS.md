@@ -17,6 +17,10 @@ Listado simplificado de los módulos y entregables ya completados en el proyecto
    - Insignias de prioridad (*Alta*, *Media*, *Baja*), ordenamiento cronológico y filtro por prioridad.
    - Edición de datos de la comunidad activa y edición/eliminación de materias desde la tabla del Panel Admin.
 6. **Plan de Implementación #4 — Fase 2 Completada (Pulido de Accesibilidad Universal WCAG 2.1 AA/AAA):**
-   - **Tarea 2.1:** Botón **"🔊 Escuchar tarea"** en cada `TaskCard.jsx` (lectura completa por voz TTS) + botón rápido de **Voz (TTS)** en la barra superior (`A11yControls.jsx`).
-   - **Tarea 2.2:** Navegación por flechas de teclado (`←`, `→`, `↑`, `↓`, `Home`, `End`) en la grilla mensual de `CalendarGrid.jsx` y en la barra de pestañas `role="tablist"` de `App.jsx`, con indicadores de progreso personal por día.
-   - **Tarea 2.3:** Limpieza de advertencias de linter en `FocusTrap.jsx`, `A11yContext.jsx`, `TaskCard.jsx`, `TaskFormModal.jsx`, `CalendarGrid.jsx` y `scripts/generate-icons.js`.
+   - Botón **"🔊 Escuchar tarea"** en cada `TaskCard.jsx` + botón rápido de **Voz (TTS)** en `A11yControls.jsx`.
+   - Navegación por flechas de teclado (`←`, `→`, `↑`, `↓`, `Home`, `End`) en `CalendarGrid.jsx` y `App.jsx`.
+   - Limpieza de advertencias de linter.
+7. **Plan de Implementación #5 — Fase 3 Completada (Perfil, Cambio Rápido de Cuenta, Escenario Demo y `README.md`):**
+   - **Tarea 3.1:** Creación de `ProfileModal.jsx` para editar nombre/contraseña y cambiar en 1 clic entre cualquiera de las 7 cuentas durante la exposición.
+   - **Tarea 3.2:** Cargador de **"⚡ Escenario Demo Completo"** (`loadDemoScenario`) con fechas dinámicas en el mes actual, 2 comunidades, 5 materias con WhatsApp, 6 tareas, avances de alumnos y solicitud pendiente lista para aprobar, más botón **"🧹 Limpiar Datos"**.
+   - **Tarea 3.3:** Creación del `README.md` oficial en la raíz del proyecto.

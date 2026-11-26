@@ -1,6 +1,6 @@
 # 🔮 Tareas Futuras y Hoja de Ruta Maestra por Fases
 
-En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para completar el proyecto de forma ordenada (primero funcionamiento puro, luego accesibilidad, luego autenticación/datos de prueba y finalmente despliegue híbrido en Firebase).
+En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para completar el proyecto de forma ordenada.
 
 ---
 
@@ -22,14 +22,14 @@ En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para co
 
 ---
 
-## 🟣 FASE 3: Registro, Perfiles y Semilla de Demostración para Sustentación — *Siguiente Fase*
-- [ ] **Tarea 3.1 — Gestión de Cuenta / Perfil y Cambio Rápido de Usuario:** Permitir al usuario editar su nombre/contraseña desde la sesión activa y cambiar rápidamente entre cuentas de prueba durante la demostración.
-- [ ] **Tarea 3.2 — Cargador de "Datos de Demostración para Sustentación":** Botón accesible para poblar o restaurar en un clic un escenario académico completo (comunidades con las 7 cuentas distribuidas, materias con enlaces reales/mock de WhatsApp, tareas con distintas prioridades/fechas del mes actual, progreso de varios alumnos y solicitudes pendientes) para que la presentación nunca inicie en blanco.
-- [ ] **Tarea 3.3 — `README.md` Oficial en la Raíz del Proyecto:** Documentación completa de instalación, cuentas de prueba y arquitectura.
+## 🟣 FASE 3: Registro, Perfiles y Semilla de Demostración para Sustentación (✅ 100% COMPLETADA — Plan #5)
+- [x] **Tarea 3.1 — Gestión de Cuenta / Perfil y Cambio Rápido de Usuario:** Modal `ProfileModal.jsx` para editar nombre/contraseña y cambiar en 1 clic entre las 7 cuentas durante la demostración (Plan #5).
+- [x] **Tarea 3.2 — Cargador de "Datos de Demostración para Sustentación":** Botón *"⚡ Cargar Demo & Entrar"* en Login y en Perfil que puebla comunidades, materias con enlaces de WhatsApp, tareas en el mes actual, avances individuales y solicitudes pendientes (Plan #5).
+- [x] **Tarea 3.3 — `README.md` Oficial en la Raíz del Proyecto:** Documentación completa de instalación, cuentas de prueba y arquitectura (Plan #5).
 
 ---
 
-## 🟠 FASE 4: Integración con Firebase (Firestore + Hosting PWA Híbrido) — *Fase Final*
+## 🟠 FASE 4: Integración con Firebase (Firestore + Hosting PWA Híbrido) — *Siguiente y Última Fase*
 - [ ] **Tarea 4.1 — Configuración del SDK de Firebase (`src/services/firebaseConfig.js`):** Conectar el proyecto a Firebase con soporte de variables de entorno y *fallback* automático a `localStorage` si se presenta sin conexión.
 - [ ] **Tarea 4.2 — Sincronización en Tiempo Real con Firestore (`storageService.js`):** Sincronizar grupos, solicitudes, materias, tareas y progreso de estudiantes en tiempo real entre dispositivos con caché offline de Firestore.
 - [ ] **Tarea 4.3 — Configuración de Firebase Hosting (`firebase.json`):** Preparar y documentar el despliegue en `https://<proyecto>.web.app` con certificado SSL para instalación nativa de la PWA en celulares y PC durante la sustentación.

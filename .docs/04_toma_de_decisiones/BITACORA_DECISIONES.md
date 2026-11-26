@@ -43,14 +43,19 @@ Registro cronológico e incremental de las decisiones arquitectónicas, iteracio
 
 ## 🕒 Hito 4: Fase 2 — Pulido de Accesibilidad Universal y Calidad de Código (2026-11-26)
 
-### 4.1. Lectura en Voz Alta (`TTS`) Directa por Tarea y Conmutador Rápido de Voz
-- **Contexto:** Los usuarios con baja visión, ceguera o dislexia necesitaban poder escuchar el contenido completo de cualquier tarea individual bajo demanda y activar/desactivar la voz rápidamente desde la barra superior.
-- **Solución:**
-  - Se agregó el botón **"🔊 Escuchar tarea"** en cada `TaskCard.jsx`, que sintetiza título, materia, prioridad, fecha/hora de entrega, estado personal, descripción y notas privadas.
-  - Se añadió el conmutador rápido **"Voz (TTS) / Voz Activa"** en `A11yControls.jsx`.
+### 4.1. Lectura en Voz Alta (`TTS`) Directa por Tarea y Navegación WAI-ARIA por Flechas
+- **Solución implementada:**
+  - Botón **"🔊 Escuchar tarea"** en cada `TaskCard.jsx` y conmutador rápido **"Voz (TTS)"** en `A11yControls.jsx`.
+  - Navegación con flechas (`←`, `→`, `↑`, `↓`, `Home`, `End`) en `CalendarGrid.jsx` y `App.jsx`, y limpieza de warnings de linter.
 
-### 4.2. Navegación por Flechas de Teclado en Grilla de Calendario y Pestañas (WAI-ARIA)
-- **Solución:**
-  - En `CalendarGrid.jsx` se implementó navegación con `ArrowRight`, `ArrowLeft`, `ArrowDown` (+7 días), `ArrowUp` (-7 días), `Home` y `End`, además de reflejar el progreso personal del estudiante en los indicadores de cada celda.
-  - En `App.jsx` se implementó navegación con `ArrowRight`, `ArrowLeft`, `Home` y `End` sobre la barra `role="tablist"`.
-  - Se limpiaron las advertencias de `setState` en `useEffect`, referencias durante render y variables sin uso en `FocusTrap.jsx`, `A11yContext.jsx`, `TaskCard.jsx`, `TaskFormModal.jsx`, `CalendarGrid.jsx` y `scripts/generate-icons.js`.
+---
+
+## 🕒 Hito 5: Fase 3 — Perfil de Estudiante, Cambio Rápido de Cuenta, Escenario Demo en 1 Clic y `README.md` (2026-11-26)
+
+### 5.1. Creación de `ProfileModal.jsx` y Cambio Rápido de Cuenta para Sustentación
+- **Contexto:** Durante la sustentación académica se requiere demostrar cómo interactúan el Administrador y los Estudiantes sin perder tiempo cerrando sesión y escribiendo contraseñas repetidamente, además de poder editar los datos del perfil propio.
+- **Solución:** Se creó `src/components/auth/ProfileModal.jsx` accesible desde el botón **"Perfil / Demo"** de la cabecera, permitiendo editar nombre y contraseña (`updateMyProfile`) y alternar en 1 clic entre cualquiera de las 7 cuentas (`quickSwitchAccount`).
+
+### 5.2. Generador de Escenario Demo con Fechas Dinámicas (`loadDemoScenario`)
+- **Contexto:** Para que el calendario mensual nunca luzca vacío sin importar en qué día se realice la sustentación, las fechas de las tareas de demostración deben generarse dentro del mes en curso.
+- **Solución:** `storageService.loadDemoScenario()` calcula fechas relativas al día actual dentro del mes presente y puebla 2 comunidades (`FESC-2026` y `UX-A11Y`), 5 materias con enlaces de WhatsApp, 6 tareas con prioridades variadas, progreso individual de varios estudiantes y 1 solicitud pendiente de `user3` lista para aprobar en vivo. Además, se creó el `README.md` oficial en la raíz del proyecto.

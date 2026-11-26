@@ -11,6 +11,7 @@ import { ToastHost } from './components/a11y/ToastHost';
 import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 
 import { AuthView } from './components/auth/AuthView';
+import { ProfileModal } from './components/auth/ProfileModal';
 import { CalendarGrid } from './components/calendar/CalendarGrid';
 import { AgendaView } from './components/calendar/AgendaView';
 import { SubjectsDirectoryView } from './components/subjects/SubjectsDirectoryView';
@@ -31,11 +32,13 @@ import {
   GraduationCap, 
   Crown,
   LogOut,
-  ArrowRight
+  ArrowRight,
+  User
 } from 'lucide-react';
 
 const MainLayout = () => {
   const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'subjects' | 'community' | 'admin'
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { currentGroup, currentUser, isAdmin, isAuthenticated, logout } = useAuthGroup();
   const { setIsTaskModalOpen, setEditingTask } = useTasks();
   const { announce } = useA11y();
@@ -165,6 +168,17 @@ const MainLayout = () => {
                   <span>Nueva Tarea (Alt+N)</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="btn btn-secondary"
+                aria-label="Abrir mi perfil, cambiar rápidamente de cuenta o cargar datos demo"
+                title="Mi Perfil / Cambio Rápido de Cuenta"
+              >
+                <User size={16} aria-hidden="true" />
+                <span>Perfil / Demo</span>
+              </button>
 
               <button
                 type="button"
@@ -327,6 +341,11 @@ const MainLayout = () => {
             <TaskFormModal />
             <GroupWarningDialog />
             <SuccessionModal />
+            <ProfileModal
+              key={currentUser?.id || 'profile'}
+              isOpen={isProfileModalOpen}
+              onClose={() => setIsProfileModalOpen(false)}
+            />
           </>
         )}
       </main>
