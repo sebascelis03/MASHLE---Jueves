@@ -22,7 +22,9 @@ export const A11yProvider = ({ children }) => {
 
   // Referencia siempre actualizada para que announce() no dependa del estado
   const settingsRef = useRef(settings);
-  settingsRef.current = settings;
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
   const audioCtxRef = useRef(null);
 
   // Sincronizar atributos en <html> para estilos inmediatos + persistir

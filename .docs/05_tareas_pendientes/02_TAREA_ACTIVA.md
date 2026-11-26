@@ -1,5 +1,5 @@
 # 🎯 Tarea Activa Actual
 
 ## Estado Actual
-- **Plan recién completado:** `PLAN_03_FASE1_FUNCIONAMIENTO_PURO.md` (**Fase 1: Funcionamiento Puro del Sistema — 100% Completada**).
-- **Siguiente Fase en la Hoja de Ruta:** **Fase 2 — Pulido de Accesibilidad Universal (WCAG 2.1 AA/AAA)** (o la fase que el usuario indique abordar a continuación).
+- **Plan recién completado:** `PLAN_04_FASE2_ACCESIBILIDAD_AVANZADA.md` (**Fase 2: Pulido de Accesibilidad Universal — 100% Completada**).
+- **Siguiente Fase en la Hoja de Ruta:** **Fase 3 — Registro, Perfiles y Semilla de Demostración para Sustentación** (antes de la Fase 4 de Firebase).

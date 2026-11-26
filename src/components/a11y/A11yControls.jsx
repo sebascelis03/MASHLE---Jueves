@@ -1,10 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useA11y } from '../../context/A11yContext';
 import { FocusTrap } from './FocusTrap';
-import { Eye, Type, Wifi, WifiOff, Keyboard } from 'lucide-react';
+import { Eye, Type, Wifi, WifiOff, Keyboard, Volume2, VolumeX } from 'lucide-react';
 
 export const A11yControls = () => {
-  const { altoContraste, fontSize, toggleAltoContraste, setFontSize, announce, openOnboarding } = useA11y();
+  const {
+    altoContraste,
+    fontSize,
+    lecturaVoz,
+    isSpeechSupported,
+    updateSettings,
+    speak,
+    stopSpeaking,
+    toggleAltoContraste,
+    setFontSize,
+    announce,
+    openOnboarding
+  } = useA11y();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -26,6 +38,17 @@ export const A11yControls = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, [announce]);
+
+  const handleToggleTTS = () => {
+    const next = !lecturaVoz;
+    updateSettings({ lecturaVoz: next });
+    if (next) {
+      speak('Lectura en voz alta activada.', { force: true });
+    } else {
+      stopSpeaking();
+      announce('Lectura en voz alta desactivada.', 'polite');
+    }
+  };
 
   return (
     <div className="a11y-controls-bar" role="region" aria-label="Controles de accesibilidad y estado de red">
@@ -61,6 +84,21 @@ export const A11yControls = () => {
           <span aria-hidden="true">🎮</span>
           <span>Calibrar Accesibilidad</span>
         </button>
+
+        {/* Botón Rápido de Lectura en Voz Alta (TTS) */}
+        {isSpeechSupported && (
+          <button
+            type="button"
+            onClick={handleToggleTTS}
+            className={`btn btn-sm ${lecturaVoz ? 'btn-primary' : 'btn-secondary'}`}
+            aria-pressed={Boolean(lecturaVoz)}
+            aria-label={lecturaVoz ? "Desactivar lectura en voz alta (TTS)" : "Activar lectura en voz alta (TTS)"}
+            title="Alternar lectura en voz alta"
+          >
+            {lecturaVoz ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+            <span>{lecturaVoz ? "Voz Activa" : "Voz (TTS)"}</span>
+          </button>
+        )}
 
         {/* Botón Alto Contraste */}
         <button
@@ -143,6 +181,7 @@ export const A11yControls = () => {
             </div>
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
+              <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>: Moverse entre días del Calendario y pestañas</li>
               <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
               <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
               <li><kbd>Alt + L</kbd>: Ir a vista Tablero &amp; Lista</li>
@@ -229,7 +268,7 @@ export const A11yControls = () => {
           top: 100%;
           right: 1rem;
           margin-top: 0.5rem;
-          width: 310px;
+          width: 330px;
           z-index: 100;
           box-shadow: var(--shadow-lg);
           border: 1px solid var(--border-focus);

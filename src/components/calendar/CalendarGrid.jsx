@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useTasks } from '../../context/TaskContext';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useA11y } from '../../context/A11yContext';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalIcon } from 'lucide-react';
 
+const pad = (n) => String(n).padStart(2, '0');
+
 export const CalendarGrid = () => {
-  const { tasks, selectedDate, setSelectedDate, setIsTaskModalOpen, setEditingTask } = useTasks();
+  const { tasks, selectedDate, setSelectedDate, setIsTaskModalOpen, setEditingTask, getMyProgress } = useTasks();
   const { isAdmin } = useAuthGroup();
   const { announce } = useA11y();
+
+  const gridRef = useRef(null);
+
+  const [todayStr] = useState(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  });
 
   const [currentMonthDate, setCurrentMonthDate] = useState(() => {
     const today = new Date();
@@ -50,32 +59,46 @@ export const CalendarGrid = () => {
   };
 
   const goToToday = () => {
-    const today = new Date();
-    setCurrentMonthDate(new Date(today.getFullYear(), today.getMonth(), 1));
-    const pad = (n) => String(n).padStart(2, '0');
-    const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+    const [tYear, tMonth] = todayStr.split('-').map(Number);
+    setCurrentMonthDate(new Date(tYear, tMonth - 1, 1));
     setSelectedDate(todayStr);
-    announce(`Seleccionado el día de hoy, ${today.toLocaleDateString()}`, 'polite');
+    announce(`Seleccionado el día de hoy, ${todayStr}`, 'polite');
   };
 
   const handleDaySelect = (dayNum) => {
-    const pad = (n) => String(n).padStart(2, '0');
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     setSelectedDate(dateStr);
 
     const dayTasks = tasks.filter(t => t.fechaEntrega === dateStr);
-    const countMsg = dayTasks.length === 1 ? '1 tarea pendiente' : `${dayTasks.length} tareas`;
+    const countMsg = dayTasks.length === 1 ? '1 tarea registrada' : `${dayTasks.length} tareas registradas`;
     announce(`Seleccionado día ${dayNum} de ${monthNames[month]}. ${countMsg}.`, 'polite');
+  };
+
+  // Navegación accesible por flechas de teclado dentro de la grilla mensual (WAI-ARIA Grid Pattern)
+  const handleDayKeyDown = (e, dayNum) => {
+    let targetDay = null;
+    if (e.key === 'ArrowRight') targetDay = dayNum + 1;
+    else if (e.key === 'ArrowLeft') targetDay = dayNum - 1;
+    else if (e.key === 'ArrowDown') targetDay = dayNum + 7;
+    else if (e.key === 'ArrowUp') targetDay = dayNum - 7;
+    else if (e.key === 'Home') targetDay = 1;
+    else if (e.key === 'End') targetDay = totalDaysInMonth;
+
+    if (targetDay !== null) {
+      e.preventDefault();
+      const clampedDay = Math.max(1, Math.min(totalDaysInMonth, targetDay));
+      handleDaySelect(clampedDay);
+      const btn = gridRef.current?.querySelector(`[data-day-num="${clampedDay}"]`);
+      if (btn && btn.focus) {
+        btn.focus();
+      }
+    }
   };
 
   const handleNewTaskForSelected = () => {
     setEditingTask(null);
     setIsTaskModalOpen(true);
   };
-
-  const pad = (n) => String(n).padStart(2, '0');
-  const todayObj = new Date();
-  const todayStr = `${todayObj.getFullYear()}-${pad(todayObj.getMonth() + 1)}-${pad(todayObj.getDate())}`;
 
   return (
     <div className="card calendar-container" role="region" aria-label="Calendario de registro y tareas escolares">
@@ -133,7 +156,12 @@ export const CalendarGrid = () => {
       </div>
 
       {/* Celdas del calendario */}
-      <div className="calendar-grid days-body" role="grid" aria-labelledby="calendar-month-heading">
+      <div
+        ref={gridRef}
+        className="calendar-grid days-body"
+        role="grid"
+        aria-labelledby="calendar-month-heading"
+      >
         {/* Días del mes previo (inactivos) */}
         {Array.from({ length: firstDayIndex }).map((_, i) => {
           const prevDayNum = totalDaysInPrevMonth - firstDayIndex + i + 1;
@@ -151,15 +179,20 @@ export const CalendarGrid = () => {
           const isSelected = selectedDate === dateStr;
           const isToday = todayStr === dateStr;
           const dayTasks = tasks.filter(t => t.fechaEntrega === dateStr);
-          const hasPending = dayTasks.some(t => t.estado === 'pendiente');
-          const hasInProgress = dayTasks.some(t => t.estado === 'en_progreso');
-          const hasCompleted = dayTasks.some(t => t.estado === 'finalizada');
+
+          // Estado personal de cada tarea del día
+          const personalStatuses = dayTasks.map(t => getMyProgress(t.id).estadoPersonal);
+          const hasPending = personalStatuses.includes('pendiente');
+          const hasInProgress = personalStatuses.includes('en_progreso');
+          const hasCompleted = personalStatuses.includes('finalizada');
 
           return (
             <button
               key={`day-${dayNum}`}
               type="button"
+              data-day-num={dayNum}
               onClick={() => handleDaySelect(dayNum)}
+              onKeyDown={(e) => handleDayKeyDown(e, dayNum)}
               className={`day-cell active-cell ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}`}
               role="gridcell"
               aria-selected={isSelected}
@@ -172,9 +205,9 @@ export const CalendarGrid = () => {
                 <div className="task-indicators-container" aria-hidden="true">
                   <span className="task-count-pill">{dayTasks.length}</span>
                   <div className="task-dots-row">
-                    {hasPending && <span className="dot dot-pending" title="Pendiente" />}
+                    {hasPending && <span className="dot dot-pending" title="Por realizar" />}
                     {hasInProgress && <span className="dot dot-progress" title="En progreso" />}
-                    {hasCompleted && <span className="dot dot-completed" title="Finalizada" />}
+                    {hasCompleted && <span className="dot dot-completed" title="Realizada" />}
                   </div>
                 </div>
               )}

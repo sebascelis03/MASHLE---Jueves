@@ -1,45 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FocusTrap } from '../a11y/FocusTrap';
 import { useTasks } from '../../context/TaskContext';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { X, Save, AlertCircle } from 'lucide-react';
 
-export const TaskFormModal = () => {
-  const { isTaskModalOpen, setIsTaskModalOpen, editingTask, setEditingTask, subjects, saveTask, selectedDate } = useTasks();
-  const { isAdmin } = useAuthGroup();
-
-  const [titulo, setTitulo] = useState('');
-  const [descripcion, setDescripcion] = useState('');
-  const [materiaId, setMateriaId] = useState('');
-  const [fechaEntrega, setFechaEntrega] = useState(selectedDate);
-  const [horaEntrega, setHoraEntrega] = useState('23:59');
-  const [estado, setEstado] = useState('pendiente');
-  const [prioridad, setPrioridad] = useState('media');
+const TaskFormContent = ({ editingTask, subjects, selectedDate, saveTask, onClose }) => {
+  const [titulo, setTitulo] = useState(() => editingTask?.titulo || '');
+  const [descripcion, setDescripcion] = useState(() => editingTask?.descripcion || '');
+  const [materiaId, setMateriaId] = useState(() => editingTask?.materiaId || subjects[0]?.id || '');
+  const [fechaEntrega, setFechaEntrega] = useState(() => editingTask?.fechaEntrega || selectedDate);
+  const [horaEntrega, setHoraEntrega] = useState(() => editingTask?.horaEntrega || '23:59');
+  const [estado, setEstado] = useState(() => editingTask?.estado || 'pendiente');
+  const [prioridad, setPrioridad] = useState(() => editingTask?.prioridad || 'media');
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (editingTask) {
-      setTitulo(editingTask.titulo);
-      setDescripcion(editingTask.descripcion || '');
-      setMateriaId(editingTask.materiaId || (subjects[0]?.id || ''));
-      setFechaEntrega(editingTask.fechaEntrega || selectedDate);
-      setHoraEntrega(editingTask.horaEntrega || '23:59');
-      setEstado(editingTask.estado || 'pendiente');
-      setPrioridad(editingTask.prioridad || 'media');
-    } else {
-      setTitulo('');
-      setDescripcion('');
-      setMateriaId(subjects[0]?.id || '');
-      setFechaEntrega(selectedDate);
-      setHoraEntrega('23:59');
-      setEstado('pendiente');
-      setPrioridad('media');
-    }
-    setError('');
-  }, [editingTask, isTaskModalOpen, selectedDate, subjects]);
-
-  // Solo el administrador del grupo puede crear/editar tareas oficiales
-  if (!isTaskModalOpen || !isAdmin) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -64,14 +37,9 @@ export const TaskFormModal = () => {
     });
   };
 
-  const handleClose = () => {
-    setIsTaskModalOpen(false);
-    setEditingTask(null);
-  };
-
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <FocusTrap onClose={handleClose} ariaLabel={editingTask ? "Editar tarea escolar" : "Crear nueva tarea escolar"}>
+    <div className="modal-overlay" onClick={onClose}>
+      <FocusTrap onClose={onClose} ariaLabel={editingTask ? "Editar tarea escolar" : "Crear nueva tarea escolar"}>
         <div 
           className="modal-content" 
           onClick={(e) => e.stopPropagation()}
@@ -82,7 +50,7 @@ export const TaskFormModal = () => {
             </h2>
             <button
               type="button"
-              onClick={handleClose}
+              onClick={onClose}
               className="btn btn-sm btn-secondary"
               aria-label="Cerrar modal de tarea (Escape)"
             >
@@ -138,6 +106,7 @@ export const TaskFormModal = () => {
                 value={materiaId}
                 onChange={(e) => setMateriaId(e.target.value)}
               >
+                {subjects.length === 0 && <option value="general">General (Sin materia registrada)</option>}
                 {subjects.map(s => (
                   <option key={s.id} value={s.id}>
                     {s.nombre} ({s.docente})
@@ -178,7 +147,7 @@ export const TaskFormModal = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div>
                 <label htmlFor="task-estado-select" className="label">
-                  <span>Estado de la Tarea</span>
+                  <span>Estado Oficial de la Tarea</span>
                 </label>
                 <select
                   id="task-estado-select"
@@ -226,7 +195,7 @@ export const TaskFormModal = () => {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={onClose}
                 className="btn btn-secondary"
               >
                 Cancelar
@@ -243,5 +212,28 @@ export const TaskFormModal = () => {
         </div>
       </FocusTrap>
     </div>
+  );
+};
+
+export const TaskFormModal = () => {
+  const { isTaskModalOpen, setIsTaskModalOpen, editingTask, setEditingTask, subjects, saveTask, selectedDate } = useTasks();
+  const { isAdmin } = useAuthGroup();
+
+  if (!isTaskModalOpen || !isAdmin) return null;
+
+  const handleClose = () => {
+    setIsTaskModalOpen(false);
+    setEditingTask(null);
+  };
+
+  return (
+    <TaskFormContent
+      key={editingTask?.id || `new-${selectedDate}`}
+      editingTask={editingTask}
+      subjects={subjects}
+      selectedDate={selectedDate}
+      saveTask={saveTask}
+      onClose={handleClose}
+    />
   );
 };

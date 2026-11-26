@@ -80,9 +80,36 @@ const MainLayout = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAuthenticated, isAdmin, setIsTaskModalOpen, setEditingTask, announce]);
 
+  const TABS_ORDER = [
+    { id: 'calendar', label: 'Calendario', domId: 'tab-calendar' },
+    { id: 'agenda', label: 'Lista y Progresión', domId: 'tab-agenda' },
+    { id: 'subjects', label: 'Materias & WhatsApp', domId: 'tab-subjects' },
+    { id: 'community', label: 'Mi Comunidad', domId: 'tab-community' },
+    { id: 'admin', label: 'Panel de Administración', domId: 'tab-admin' }
+  ];
+
   const handleTabChange = (tabId, label) => {
     setActiveTab(tabId);
     announce(`Pestaña activa: ${label}`, 'polite');
+  };
+
+  const handleTabListKeyDown = (e) => {
+    const currentIndex = TABS_ORDER.findIndex(t => t.id === activeTab);
+    if (currentIndex === -1) return;
+
+    let nextIndex = null;
+    if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % TABS_ORDER.length;
+    else if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + TABS_ORDER.length) % TABS_ORDER.length;
+    else if (e.key === 'Home') nextIndex = 0;
+    else if (e.key === 'End') nextIndex = TABS_ORDER.length - 1;
+
+    if (nextIndex !== null) {
+      e.preventDefault();
+      const nextTab = TABS_ORDER[nextIndex];
+      handleTabChange(nextTab.id, nextTab.label);
+      const btn = document.getElementById(nextTab.domId);
+      if (btn && btn.focus) btn.focus();
+    }
   };
 
   const openNewTaskModal = () => {
@@ -156,7 +183,7 @@ const MainLayout = () => {
         {/* Pestañas de Navegación Accesibles (solo si ha iniciado sesión) */}
         {isAuthenticated && (
           <nav className="tabs-nav" role="navigation" aria-label="Navegación principal de la aplicación">
-            <div className="tabs-list" role="tablist">
+            <div className="tabs-list" role="tablist" onKeyDown={handleTabListKeyDown}>
               <button
                 type="button"
                 role="tab"

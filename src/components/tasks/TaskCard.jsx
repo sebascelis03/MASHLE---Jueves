@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TaskStatusBadge } from './TaskStatusBadge';
 import {
   Calendar,
@@ -15,10 +15,12 @@ import {
   PlayCircle,
   AlertTriangle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Volume2
 } from 'lucide-react';
 import { useTasks } from '../../context/TaskContext';
 import { useAuthGroup } from '../../context/AuthGroupContext';
+import { useA11y } from '../../context/A11yContext';
 
 const PRIORITY_CONFIG = {
   alta: {
@@ -38,6 +40,12 @@ const PRIORITY_CONFIG = {
   }
 };
 
+const PERSONAL_STATUS_LABELS = {
+  pendiente: 'Pendiente por realizar',
+  en_progreso: 'En progreso',
+  finalizada: 'Realizada'
+};
+
 export const TaskCard = ({ task, subject }) => {
   const {
     updateTaskStatus,
@@ -50,6 +58,7 @@ export const TaskCard = ({ task, subject }) => {
     getTaskCompletion
   } = useTasks();
   const { isAdmin, currentUser } = useAuthGroup();
+  const { speak, isSpeechSupported } = useA11y();
 
   const myProgress = getMyProgress(task.id);
   const { done, inProgress, pending, total, membersBreakdown } = getTaskCompletion(task.id);
@@ -57,11 +66,12 @@ export const TaskCard = ({ task, subject }) => {
 
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  // Borrador local de notas personales (se guarda con el botón)
-  const [notesDraft, setNotesDraft] = useState(myProgress.notasPersonales);
-  useEffect(() => {
-    setNotesDraft(myProgress.notasPersonales);
-  }, [myProgress.notasPersonales, currentUser?.id]);
+  // Borrador local de notas personales indexado por usuario+tarea para evitar useEffect cascada
+  const draftKey = `${currentUser?.id || 'anon'}_${task.id}`;
+  const [draftState, setDraftState] = useState({ key: draftKey, text: null });
+  const notesDraft = draftState.key === draftKey && draftState.text !== null
+    ? draftState.text
+    : myProgress.notasPersonales;
 
   const notesChanged = notesDraft !== myProgress.notasPersonales;
   const priorityInfo = PRIORITY_CONFIG[task.prioridad || 'media'] || PRIORITY_CONFIG.media;
@@ -77,7 +87,20 @@ export const TaskCard = ({ task, subject }) => {
 
   const handleSaveNotes = (e) => {
     e.preventDefault();
-    saveMyNotes(task.id, notesDraft.trim());
+    const cleaned = notesDraft.trim();
+    saveMyNotes(task.id, cleaned);
+    setDraftState({ key: draftKey, text: null });
+  };
+
+  const handleReadTaskAloud = () => {
+    const subjectName = subject ? subject.nombre : 'General';
+    const personalStatusText = PERSONAL_STATUS_LABELS[myProgress.estadoPersonal] || 'Pendiente';
+    const timePart = task.horaEntrega ? ` a las ${task.horaEntrega}` : '';
+    const descPart = task.descripcion ? ` Descripción: ${task.descripcion}.` : '';
+    const notesPart = myProgress.notasPersonales ? ` Tus notas personales: ${myProgress.notasPersonales}.` : '';
+
+    const fullSpeech = `Tarea: ${task.titulo}. Materia: ${subjectName}. ${priorityInfo.label}. Fecha de entrega: ${task.fechaEntrega}${timePart}. Tu estado actual: ${personalStatusText}.${descPart}${notesPart}`;
+    speak(fullSpeech, { force: true });
   };
 
   return (
@@ -151,6 +174,19 @@ export const TaskCard = ({ task, subject }) => {
             <Clock size={15} aria-hidden="true" />
             <span>{task.horaEntrega}</span>
           </div>
+        )}
+        {isSpeechSupported && (
+          <button
+            type="button"
+            onClick={handleReadTaskAloud}
+            className="btn btn-sm btn-secondary"
+            style={{ marginLeft: 'auto' }}
+            aria-label={`Escuchar en voz alta la tarea ${task.titulo}`}
+            title="Leer esta tarea en voz alta (TTS)"
+          >
+            <Volume2 size={14} aria-hidden="true" />
+            <span>Escuchar tarea</span>
+          </button>
         )}
       </div>
 
@@ -273,7 +309,7 @@ export const TaskCard = ({ task, subject }) => {
               maxLength={1000}
               placeholder="Recordatorios, notas de entrega, enlaces personales..."
               value={notesDraft}
-              onChange={(e) => setNotesDraft(e.target.value)}
+              onChange={(e) => setDraftState({ key: draftKey, text: e.target.value })}
             />
             <div className="personal-notes-actions">
               <span className="personal-updated">
