@@ -7,7 +7,7 @@ Registro cronológico e incremental de las decisiones arquitectónicas, iteracio
 ## 🕒 Hito 0: Decisiones Fundacionales del Proyecto (Histórico Consolidado)
 
 ### 0.1. Arquitectura Frontend y Persistencia Offline-First
-- **Decisión:** Construir una **PWA con React 19 + Vite 8 + `vite-plugin-pwa`** y una capa de persistencia desacoplada en `src/services/storageService.js` sobre `localStorage` con 7 cuentas base (`admin1..3` y `user1..4`).
+- **Decisión:** Construir una **PWA con React 19 + Vite 8 + `vite-plugin-pwa`** y una capa de persistencia desacoplada en `src/services/storageService.js` con 7 cuentas base (`admin1..3` y `user1..4`).
 
 ### 0.2. Suite de Accesibilidad Universal (WCAG 2.1 AA/AAA) y Calibrador Inicial
 - **Decisión:** Implementar `A11yOnboardingModal.jsx` estilo consola, `A11yControls.jsx`, triple codificación en estados de tareas y soporte de teclado total (`FocusTrap`, `SkipLink`, `LiveAnnouncer`, `ToastHost` y atajos `Alt + N/C/L/M`).
@@ -52,10 +52,17 @@ Registro cronológico e incremental de las decisiones arquitectónicas, iteracio
 
 ## 🕒 Hito 5: Fase 3 — Perfil de Estudiante, Cambio Rápido de Cuenta, Escenario Demo en 1 Clic y `README.md` (2026-11-26)
 
-### 5.1. Creación de `ProfileModal.jsx` y Cambio Rápido de Cuenta para Sustentación
-- **Contexto:** Durante la sustentación académica se requiere demostrar cómo interactúan el Administrador y los Estudiantes sin perder tiempo cerrando sesión y escribiendo contraseñas repetidamente, además de poder editar los datos del perfil propio.
-- **Solución:** Se creó `src/components/auth/ProfileModal.jsx` accesible desde el botón **"Perfil / Demo"** de la cabecera, permitiendo editar nombre y contraseña (`updateMyProfile`) y alternar en 1 clic entre cualquiera de las 7 cuentas (`quickSwitchAccount`).
+### 5.1. Creación de `ProfileModal.jsx` y Generador de Escenario Demo (`loadDemoScenario`)
+- **Solución implementada:** Modal de perfil con edición de nombre/contraseña, cambio en 1 clic entre las 7 cuentas (`quickSwitchAccount`), cargador de escenario académico de sustentación con fechas dinámicas en el mes actual y `README.md` oficial en la raíz.
 
-### 5.2. Generador de Escenario Demo con Fechas Dinámicas (`loadDemoScenario`)
-- **Contexto:** Para que el calendario mensual nunca luzca vacío sin importar en qué día se realice la sustentación, las fechas de las tareas de demostración deben generarse dentro del mes en curso.
-- **Solución:** `storageService.loadDemoScenario()` calcula fechas relativas al día actual dentro del mes presente y puebla 2 comunidades (`FESC-2026` y `UX-A11Y`), 5 materias con enlaces de WhatsApp, 6 tareas con prioridades variadas, progreso individual de varios estudiantes y 1 solicitud pendiente de `user3` lista para aprobar en vivo. Además, se creó el `README.md` oficial en la raíz del proyecto.
+---
+
+## 🕒 Hito 6: Fase 4 — Integración Híbrida con Firebase Cloud Firestore (`mashle-beta777`) y Hosting PWA (2026-11-26)
+
+### 6.1. Arquitectura Dual-Mode (Cloud Firestore Realtime + `localStorage` Fallback)
+- **Contexto:** Se requería conectar el proyecto a Firebase (`mashle-beta777`) para sincronización multi-dispositivo en tiempo real y despliegue en Firebase Hosting, pero garantizando que si en la sustentación se presenta localmente o sin internet, la aplicación siga funcionando sin fallos.
+- **Solución:**
+  - Se creó `src/services/firebaseConfig.js` con las credenciales de `mashle-beta777` y suscripción `onSnapshot` sobre `mashle_app_state/global_state`.
+  - `storageService.js` guarda de forma síncrona en `localStorage` y replica asíncronamente en Firestore (`syncToCloud`). Al recibir cambios desde otro dispositivo, actualiza `localStorage` y dispara `cal_estudiantil_data_reload`.
+  - Se añadió el indicador en vivo **`☁️ Firebase Sync` / `💾 Modo Local`** en `A11yControls.jsx`.
+  - Se crearon `firebase.json` y `.firebaserc` para despliegue directo en Firebase Hosting.

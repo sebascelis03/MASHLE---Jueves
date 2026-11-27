@@ -1,4 +1,5 @@
-// Servicio de Almacenamiento Local (Offline-first) para Plataforma Estudiantil Autónoma
+// Servicio de Almacenamiento Híbrido (Cloud Firestore + Offline-first localStorage)
+import { pushAppStateToCloud, subscribeToCloudAppState } from './firebaseConfig';
 
 const STORAGE_KEYS = {
   VERSION: 'cal_estudiantil_v2_clean',
@@ -99,10 +100,12 @@ export const MOCK_ACCOUNTS = [
   }
 ];
 
-// Los grupos inician limpios por defecto para que el usuario los cree o cargue el escenario Demo en 1 clic
 const SEED_GROUPS = [];
 const SEED_SUBJECTS = [];
 const SEED_TASKS = [];
+
+let cloudUnsubscribe = null;
+let isApplyingRemoteSnapshot = false;
 
 // Helper para generar fechas relativas al mes actual y que las tareas demo siempre aparezcan en el mes visible
 const buildRelativeDateInCurrentMonth = (dayOffset) => {
@@ -143,6 +146,69 @@ export const storageService = {
     if (!localStorage.getItem(STORAGE_KEYS.TASKS)) {
       localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(SEED_TASKS));
     }
+  },
+
+  // Sincroniza el estado local actual hacia Cloud Firestore (si no estamos aplicando un snapshot remoto)
+  syncToCloud() {
+    if (isApplyingRemoteSnapshot) return;
+    const payload = {
+      users: this.getUsers(),
+      groups: this.getGroups(),
+      subjects: this.getSubjects(),
+      tasks: this.getTasks(),
+      userProgress: this.getUserProgress()
+    };
+    pushAppStateToCloud(payload);
+  },
+
+  // Inicia la escucha en tiempo real de Cloud Firestore (Modo Híbrido)
+  startRealtimeCloudSync() {
+    this.init();
+    if (cloudUnsubscribe) return cloudUnsubscribe;
+
+    let firstSnapshotHandled = false;
+
+    cloudUnsubscribe = subscribeToCloudAppState((remoteData, meta = {}) => {
+      // Si el documento en Firebase aún no existe, subimos nuestro estado local inicial
+      if (meta.isEmptyCloud) {
+        this.syncToCloud();
+        return;
+      }
+
+      if (!remoteData) return;
+
+      // Si es nuestro propio eco después de la primera carga, lo ignoramos para evitar bucles
+      if (firstSnapshotHandled && meta.isOwnEcho) {
+        return;
+      }
+      firstSnapshotHandled = true;
+
+      isApplyingRemoteSnapshot = true;
+      try {
+        if (Array.isArray(remoteData.users) && remoteData.users.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(remoteData.users));
+        }
+        if (Array.isArray(remoteData.groups)) {
+          localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(remoteData.groups));
+        }
+        if (Array.isArray(remoteData.subjects)) {
+          localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(remoteData.subjects));
+        }
+        if (Array.isArray(remoteData.tasks)) {
+          localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(remoteData.tasks));
+        }
+        if (remoteData.userProgress && typeof remoteData.userProgress === 'object') {
+          localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(remoteData.userProgress));
+        }
+
+        // Notificar a los contextos de React para que actualicen la vista en vivo
+        window.dispatchEvent(new CustomEvent('cal_estudiantil_data_reload', { detail: { fromCloud: true } }));
+      } finally {
+        isApplyingRemoteSnapshot = false;
+      }
+    });
+
+    return cloudUnsubscribe;
   },
 
   // Generador de Escenario Demo Completo para Sustentación Académica
@@ -371,6 +437,8 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(demoTasks));
     localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(demoProgress));
 
+    this.syncToCloud();
+
     return {
       users: demoUsers,
       groups: demoGroups,
@@ -388,6 +456,9 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify({}));
+
+    this.syncToCloud();
+
     return {
       users: MOCK_ACCOUNTS,
       groups: [],
@@ -409,6 +480,7 @@ export const storageService = {
 
   saveUsers(users) {
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    this.syncToCloud();
   },
 
   updateUser(updatedUser) {
@@ -442,7 +514,6 @@ export const storageService = {
       throw new Error('Contraseña incorrecta. Recuerda: admins usan 1234 y users usan 4321.');
     }
 
-    // Guardar usuario en sesión
     this.setCurrentUser(user);
     return user;
   },
@@ -463,7 +534,7 @@ export const storageService = {
       username: username,
       email: normalizedEmail,
       password: password,
-      grupoId: null, // Inicia sin grupo asignado
+      grupoId: null,
       rol: 'estudiante',
       descripcionRol: 'Estudiante Nuevo Registrado'
     };
@@ -506,6 +577,7 @@ export const storageService = {
 
   saveGroups(groups) {
     localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
+    this.syncToCloud();
   },
 
   getSubjects(grupoId) {
@@ -520,6 +592,7 @@ export const storageService = {
 
   saveSubjects(subjects) {
     localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(subjects));
+    this.syncToCloud();
   },
 
   getTasks(grupoId) {
@@ -534,9 +607,9 @@ export const storageService = {
 
   saveTasks(tasks) {
     localStorage.setItem(STORAGE_KEYS.TASKS, JSON.stringify(tasks));
+    this.syncToCloud();
   },
 
-  // Progreso y notas individuales por estudiante
   getUserProgress() {
     try {
       return JSON.parse(localStorage.getItem(STORAGE_KEYS.USER_PROGRESS)) || {};
@@ -547,6 +620,7 @@ export const storageService = {
 
   saveUserProgress(progressMap) {
     localStorage.setItem(STORAGE_KEYS.USER_PROGRESS, JSON.stringify(progressMap));
+    this.syncToCloud();
   },
 
   getSettings() {

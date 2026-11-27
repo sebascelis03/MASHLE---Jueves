@@ -1,6 +1,6 @@
 # 🔮 Tareas Futuras y Hoja de Ruta Maestra por Fases
 
-En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para completar el proyecto de forma ordenada.
+En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para el proyecto **MASHLE (Calendario Estudiantil)**.
 
 ---
 
@@ -29,7 +29,7 @@ En este archivo se mantiene la **Task List Maestra en 4 Fases** acordada para co
 
 ---
 
-## 🟠 FASE 4: Integración con Firebase (Firestore + Hosting PWA Híbrido) — *Siguiente y Última Fase*
-- [ ] **Tarea 4.1 — Configuración del SDK de Firebase (`src/services/firebaseConfig.js`):** Conectar el proyecto a Firebase con soporte de variables de entorno y *fallback* automático a `localStorage` si se presenta sin conexión.
-- [ ] **Tarea 4.2 — Sincronización en Tiempo Real con Firestore (`storageService.js`):** Sincronizar grupos, solicitudes, materias, tareas y progreso de estudiantes en tiempo real entre dispositivos con caché offline de Firestore.
-- [ ] **Tarea 4.3 — Configuración de Firebase Hosting (`firebase.json`):** Preparar y documentar el despliegue en `https://<proyecto>.web.app` con certificado SSL para instalación nativa de la PWA en celulares y PC durante la sustentación.
+## 🟠 FASE 4: Integración con Firebase (Firestore + Hosting PWA Híbrido) (✅ 100% COMPLETADA — Plan #6)
+- [x] **Tarea 4.1 — Configuración del SDK de Firebase (`src/services/firebaseConfig.js`):** Conexión al proyecto `mashle-beta777` con soporte de variables de entorno y *fallback* automático a `localStorage` si se presenta sin conexión (Plan #6).
+- [x] **Tarea 4.2 — Sincronización en Tiempo Real con Firestore (`storageService.js`):** Sincronización en vivo de usuarios, grupos, solicitudes, materias, tareas y progreso de estudiantes entre dispositivos + indicador `☁️ Firebase Sync` en `A11yControls.jsx` (Plan #6).
+- [x] **Tarea 4.3 — Configuración de Firebase Hosting (`firebase.json` y `.firebaserc`):** Archivos listos para despliegue en `https://mashle-beta777.web.app` (Plan #6).

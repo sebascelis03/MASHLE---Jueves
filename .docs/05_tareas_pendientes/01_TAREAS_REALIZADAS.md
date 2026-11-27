@@ -5,8 +5,8 @@ Listado simplificado de los módulos y entregables ya completados en el proyecto
 1. **Inicialización y Configuración Base PWA:**
    - Configuración de React 19 + Vite 8 + `vite-plugin-pwa` (`vite.config.js`, `package.json`).
    - Generación de iconos adaptables (`192x192`, `512x512`) y banner de instalación (`PWAInstallBanner.jsx`).
-2. **Capa de Persistencia Local (`storageService.js`):**
-   - Base de datos local en `localStorage` con las 7 cuentas oficiales (`admin1..3` con clave `1234` y `user1..4` con clave `4321`), grupos, materias con enlaces de WhatsApp, tareas oficiales y progreso individual.
+2. **Capa de Persistencia Híbrida (`storageService.js` + `firebaseConfig.js`):**
+   - Base de datos híbrida en **Cloud Firestore (`mashle-beta777`)** + **`localStorage` (Offline-First)** con las 7 cuentas oficiales (`admin1..3` con clave `1234` y `user1..4` con clave `4321`), grupos, materias con enlaces de WhatsApp, tareas oficiales y progreso individual.
 3. **Plan de Implementación #1 — Estructura Documental `.docs/`:**
    - Creación de las 6 subcarpetas temáticas en `.docs/` como Fuente Única de Verdad.
 4. **Plan de Implementación #2 — Cierre de Comunidades, Sucesión y Filtro de Fecha:**
@@ -21,6 +21,10 @@ Listado simplificado de los módulos y entregables ya completados en el proyecto
    - Navegación por flechas de teclado (`←`, `→`, `↑`, `↓`, `Home`, `End`) en `CalendarGrid.jsx` y `App.jsx`.
    - Limpieza de advertencias de linter.
 7. **Plan de Implementación #5 — Fase 3 Completada (Perfil, Cambio Rápido de Cuenta, Escenario Demo y `README.md`):**
-   - **Tarea 3.1:** Creación de `ProfileModal.jsx` para editar nombre/contraseña y cambiar en 1 clic entre cualquiera de las 7 cuentas durante la exposición.
-   - **Tarea 3.2:** Cargador de **"⚡ Escenario Demo Completo"** (`loadDemoScenario`) con fechas dinámicas en el mes actual, 2 comunidades, 5 materias con WhatsApp, 6 tareas, avances de alumnos y solicitud pendiente lista para aprobar, más botón **"🧹 Limpiar Datos"**.
-   - **Tarea 3.3:** Creación del `README.md` oficial en la raíz del proyecto.
+   - Creación de `ProfileModal.jsx` para editar nombre/contraseña y cambiar en 1 clic entre cualquiera de las 7 cuentas.
+   - Cargador de **"⚡ Escenario Demo Completo"** (`loadDemoScenario`) con fechas dinámicas en el mes actual y botón **"🧹 Limpiar Datos"**.
+   - Creación del `README.md` oficial en la raíz del proyecto.
+8. **Plan de Implementación #6 — Fase 4 Completada (Integración Híbrida con Firebase `mashle-beta777` y Hosting PWA):**
+   - Creación de `src/services/firebaseConfig.js` y sincronización en tiempo real (`onSnapshot` + `setDoc`) en `storageService.js` con respaldo local ininterrumpido.
+   - Indicador en vivo **`☁️ Firebase Sync` / `💾 Modo Local`** en `A11yControls.jsx`.
+   - Configuración de `firebase.json` y `.firebaserc` para despliegue en Firebase Hosting.

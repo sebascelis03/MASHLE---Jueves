@@ -69,6 +69,27 @@ export const AuthGroupProvider = ({ children }) => {
     storageService.saveGroups(groups);
   }, [groups]);
 
+  // Iniciar sincronización en tiempo real con Firebase Cloud Firestore (Modo Híbrido)
+  useEffect(() => {
+    const unsubscribe = storageService.startRealtimeCloudSync();
+    const handleRemoteReload = (e) => {
+      if (!e.detail?.fromCloud) return;
+      const latestGroups = storageService.getGroups();
+      setGroups(latestGroups);
+      setCurrentUser(prev => {
+        if (!prev) return null;
+        const latestUsers = storageService.getUsers();
+        const freshUser = latestUsers.find(u => u.id === prev.id) || prev;
+        return resolveUserMembership(freshUser, latestGroups);
+      });
+    };
+    window.addEventListener('cal_estudiantil_data_reload', handleRemoteReload);
+    return () => {
+      window.removeEventListener('cal_estudiantil_data_reload', handleRemoteReload);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
+
   /* ---------------------------- Autenticación ---------------------------- */
   const login = (email, password) => {
     try {

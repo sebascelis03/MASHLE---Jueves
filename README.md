@@ -53,7 +53,9 @@ El portal de acceso (`AuthView`) incluye **7 cuentas preconfiguradas** y un bot�
 
 - **Frontend:** React 19 + JSX.
 - **Bundler:** Vite 8.
-- **PWA & Offline-First:** `vite-plugin-pwa` (Workbox Service Worker + `manifest.webmanifest`).
+- **PWA & Persistencia Híbrida (Cloud + Offline-First):**
+  - Sincronización en tiempo real mediante **Firebase Cloud Firestore** (`mashle-beta777`) en `src/services/firebaseConfig.js`.
+  - Respaldo automático e instantáneo en **`localStorage`** (`src/services/storageService.js`) y Service Worker (`vite-plugin-pwa`) para funcionar 100% en local o sin conexión a internet.
 - **Estilos:** Vanilla CSS con arquitectura de Design Tokens (`src/styles/tokens.css`), modo Alto Contraste WCAG AAA y 4 paletas de daltonismo (*Protanopía*, *Deuteranopía*, *Tritanopía*, *Acromatopsia*).
 - **Iconografía Accesible:** `lucide-react` con atributos `aria-hidden="true"` acompañados siempre de etiquetas semánticas.
 - **Documentación Interna (Fuente Única de Verdad):** Centralizada en la carpeta `.docs/` dividida en 6 subcarpetas temáticas.
@@ -82,4 +84,11 @@ El portal de acceso (`AuthView`) incluye **7 cuentas preconfiguradas** y un bot�
    ```bash
    npm run build
    npm run preview
+   ```
+5. **Desplegar en Firebase Hosting (`mashle-beta777`) (Opcional):**
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   npm run build
+   firebase deploy --only hosting
    ```

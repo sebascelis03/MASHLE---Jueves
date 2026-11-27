@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useA11y } from '../../context/A11yContext';
 import { FocusTrap } from './FocusTrap';
-import { Eye, Type, Wifi, WifiOff, Keyboard, Volume2, VolumeX } from 'lucide-react';
+import { Eye, Type, Wifi, WifiOff, Keyboard, Volume2, VolumeX, Cloud, HardDrive } from 'lucide-react';
 
 export const A11yControls = () => {
   const {
@@ -18,6 +18,7 @@ export const A11yControls = () => {
     openOnboarding
   } = useA11y();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   useEffect(() => {
@@ -27,15 +28,21 @@ export const A11yControls = () => {
     };
     const handleOffline = () => {
       setIsOnline(false);
+      setIsCloudSynced(false);
       announce('Conexión perdida. Estás usando la aplicación en modo sin conexión.', 'assertive');
+    };
+    const handleCloudStatus = (e) => {
+      setIsCloudSynced(Boolean(e.detail?.connected));
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('cal_estudiantil_cloud_status', handleCloudStatus);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('cal_estudiantil_cloud_status', handleCloudStatus);
     };
   }, [announce]);
 
@@ -69,6 +76,31 @@ export const A11yControls = () => {
             <>
               <WifiOff size={14} aria-hidden="true" />
               <span>Sin conexión</span>
+            </>
+          )}
+        </div>
+
+        {/* Indicador Híbrido Firebase Cloud / Respaldo Local */}
+        <div
+          className={`network-badge ${isCloudSynced && isOnline ? 'online' : ''}`}
+          style={{
+            backgroundColor: isCloudSynced && isOnline ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-surface)',
+            color: isCloudSynced && isOnline ? '#60a5fa' : 'var(--text-muted)',
+            border: '1px solid var(--border-normal)'
+          }}
+          role="status"
+          aria-label={isCloudSynced && isOnline ? 'Sincronización con Firebase Cloud activa' : 'Almacenamiento en modo local'}
+          title={isCloudSynced && isOnline ? 'Conectado en tiempo real a Firebase (mashle-beta777)' : 'Respaldo Local Activo (localStorage)'}
+        >
+          {isCloudSynced && isOnline ? (
+            <>
+              <Cloud size={14} aria-hidden="true" />
+              <span>Firebase Sync</span>
+            </>
+          ) : (
+            <>
+              <HardDrive size={14} aria-hidden="true" />
+              <span>Modo Local</span>
             </>
           )}
         </div>
