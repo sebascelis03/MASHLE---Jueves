@@ -20,7 +20,7 @@ const resolveUserMembership = (user, groupsList) => {
   return {
     ...user,
     grupoId: group ? group.id : null,
-    rol: isUserAdmin ? 'admin' : 'estudiante'
+    rol: group ? (isUserAdmin ? 'admin' : 'estudiante') : (user.rol || 'estudiante')
   };
 };
 
@@ -54,7 +54,7 @@ export const AuthGroupProvider = ({ children }) => {
   );
 
   // Acción en espera de confirmación:
-  //   { type: 'join', group } | { type: 'create', data } | { type: 'leave' }
+  //   { type: 'join', group } | { type: 'create', data } | { type: 'leave' } | { type: 'transfer_only' }
   const [pendingAction, setPendingAction] = useState(null);
   const [isSuccessionModalOpen, setIsSuccessionModalOpen] = useState(false);
   const [isSwitchWarningOpen, setIsSwitchWarningOpen] = useState(false);
@@ -68,6 +68,27 @@ export const AuthGroupProvider = ({ children }) => {
   useEffect(() => {
     storageService.saveGroups(groups);
   }, [groups]);
+
+  // Iniciar sincronización en tiempo real con Firebase Cloud Firestore (Modo Híbrido)
+  useEffect(() => {
+    const unsubscribe = storageService.startRealtimeCloudSync();
+    const handleRemoteReload = (e) => {
+      if (!e.detail?.fromCloud) return;
+      const latestGroups = storageService.getGroups();
+      setGroups(latestGroups);
+      setCurrentUser(prev => {
+        if (!prev) return null;
+        const latestUsers = storageService.getUsers();
+        const freshUser = latestUsers.find(u => u.id === prev.id) || prev;
+        return resolveUserMembership(freshUser, latestGroups);
+      });
+    };
+    window.addEventListener('cal_estudiantil_data_reload', handleRemoteReload);
+    return () => {
+      window.removeEventListener('cal_estudiantil_data_reload', handleRemoteReload);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, []);
 
   /* ---------------------------- Autenticación ---------------------------- */
   const login = (email, password) => {
@@ -125,14 +146,56 @@ export const AuthGroupProvider = ({ children }) => {
     ]
   });
 
+  // Limpia cualquier solicitud pendiente del usuario en otros grupos cuando ya ingresó a uno
+  const clearUserPendingRequests = (groupsList, userId) =>
+    groupsList.map(g => ({
+      ...g,
+      solicitudesPendientes: (g.solicitudesPendientes || []).filter(s => s.id !== userId)
+    }));
+
   // Ejecuta una acción de unión/creación/salida. Garantiza que el usuario nunca
   // quede en dos grupos: primero se retira del actual y luego entra al nuevo.
   const performExit = (action, successorId = null) => {
     if (!currentUser) return;
 
+    // Caso especial: Ceder liderazgo principal permaneciendo en el grupo actual
+    if (action?.type === 'transfer_only') {
+      if (!currentGroup || !successorId) return;
+      const successor = currentGroup.miembros.find(m => m.id === successorId);
+      if (!successor) return;
+
+      const nextGroups = groups.map(g => {
+        if (g.id !== currentGroup.id) return g;
+        return {
+          ...g,
+          adminId: successor.id,
+          miembros: g.miembros.map(m => {
+            if (m.id === successor.id) return { ...m, rol: 'admin' };
+            if (m.id === currentUser.id) return { ...m, rol: 'estudiante' };
+            return m;
+          })
+        };
+      });
+
+      const updatedSuccessor = { id: successor.id, grupoId: currentGroup.id, rol: 'admin' };
+      storageService.updateUser(updatedSuccessor);
+
+      setGroups(nextGroups);
+      setCurrentUser(prev => ({ ...prev, rol: 'estudiante' }));
+      setPendingAction(null);
+      setIsSuccessionModalOpen(false);
+      announce(`Has cedido el liderazgo principal de ${currentGroup.nombre} a ${successor.nombre}. Continúas como estudiante miembro del grupo.`, 'assertive');
+      return;
+    }
+
     let nextGroups = currentUser.grupoId
       ? removeUserFromGroup(groups, currentUser.id, currentUser.grupoId, successorId)
       : groups;
+
+    if (successorId && currentUser.grupoId) {
+      storageService.updateUser({ id: successorId, grupoId: currentUser.grupoId, rol: 'admin' });
+    }
+
     let nextUser = { ...currentUser, grupoId: null, rol: 'estudiante' };
     let message = 'Has salido de tu grupo escolar.';
 
@@ -141,25 +204,23 @@ export const AuthGroupProvider = ({ children }) => {
       if (!target) {
         announce('El grupo al que querías unirte ya no está disponible.', 'assertive');
       } else {
-        nextGroups = nextGroups.map(g =>
+        nextGroups = clearUserPendingRequests(nextGroups, currentUser.id).map(g =>
           g.id === target.id
             ? {
                 ...g,
                 miembros: [
                   ...g.miembros,
                   { id: currentUser.id, nombre: currentUser.nombre, email: currentUser.email, rol: 'estudiante' }
-                ],
-                // Si el usuario tenía una solicitud pendiente aquí, ya no es necesaria
-                solicitudesPendientes: (g.solicitudesPendientes || []).filter(s => s.id !== currentUser.id)
+                ]
               }
             : g
         );
-        nextUser = { ...nextUser, grupoId: target.id };
+        nextUser = { ...nextUser, grupoId: target.id, rol: 'estudiante' };
         message = `Te has unido exitosamente al grupo: ${target.nombre}.`;
       }
     } else if (action?.type === 'create') {
       const newGroup = buildNewGroup(action.data);
-      nextGroups = [...nextGroups, newGroup];
+      nextGroups = [...clearUserPendingRequests(nextGroups, currentUser.id), newGroup];
       nextUser = { ...nextUser, grupoId: newGroup.id, rol: 'admin' };
       message = `Comunidad "${newGroup.nombre}" creada con éxito. Ahora eres el Administrador.`;
     }
@@ -193,7 +254,7 @@ export const AuthGroupProvider = ({ children }) => {
     return { pending: true, route: 'warning' };
   };
 
-  // 1. Unirse a un grupo existente
+  // 1. Unirse directamente a un grupo existente (o tras validar código)
   const requestJoinGroup = (targetGroupId) => {
     if (!currentUser) return;
 
@@ -214,6 +275,93 @@ export const AuthGroupProvider = ({ children }) => {
     } else if (route === 'succession') {
       announce('Eres el administrador de tu grupo actual. Debes ceder la administración a un compañero antes de unirte a otro grupo.', 'assertive');
     }
+  };
+
+  // 1.b Enviar solicitud de acceso a un grupo (para que el Administrador la apruebe en Panel Admin)
+  const sendJoinRequest = (targetGroupId) => {
+    if (!currentUser) return { success: false };
+
+    if (currentUser.grupoId === targetGroupId) {
+      announce('Ya eres miembro de esta comunidad.', 'polite');
+      return { success: false };
+    }
+
+    const targetGroup = groups.find(g => g.id === targetGroupId);
+    if (!targetGroup) return { success: false };
+
+    const alreadyRequested = (targetGroup.solicitudesPendientes || []).some(s => s.id === currentUser.id);
+    if (alreadyRequested) {
+      announce(`Ya tienes una solicitud pendiente en ${targetGroup.nombre}.`, 'polite');
+      return { success: false };
+    }
+
+    const nextGroups = groups.map(g =>
+      g.id === targetGroupId
+        ? {
+            ...g,
+            solicitudesPendientes: [
+              ...(g.solicitudesPendientes || []),
+              {
+                id: currentUser.id,
+                nombre: currentUser.nombre,
+                email: currentUser.email,
+                fechaSolicitud: new Date().toISOString()
+              }
+            ]
+          }
+        : g
+    );
+
+    setGroups(nextGroups);
+    announce(`Solicitud enviada a la comunidad "${targetGroup.nombre}". El administrador del grupo podrá aprobar tu ingreso.`, 'polite');
+    return { success: true };
+  };
+
+  // 1.c Cancelar solicitud de acceso enviada previamente
+  const cancelJoinRequest = (targetGroupId) => {
+    if (!currentUser) return;
+    const targetGroup = groups.find(g => g.id === targetGroupId);
+    if (!targetGroup) return;
+
+    const nextGroups = groups.map(g =>
+      g.id === targetGroupId
+        ? {
+            ...g,
+            solicitudesPendientes: (g.solicitudesPendientes || []).filter(s => s.id !== currentUser.id)
+          }
+        : g
+    );
+    setGroups(nextGroups);
+    announce(`Solicitud de acceso a "${targetGroup.nombre}" cancelada.`, 'polite');
+  };
+
+  // 1.d Unirse directamente mediante Código de Invitación
+  const joinGroupByCode = (rawCode) => {
+    if (!currentUser) return { success: false, error: 'Debes iniciar sesión.' };
+    const cleanCode = (rawCode || '').trim().toUpperCase();
+    if (!cleanCode) {
+      announce('Por favor ingresa un código de invitación válido.', 'assertive');
+      return { success: false, error: 'Ingresa un código de invitación.' };
+    }
+
+    const targetGroup = groups.find(
+      g => (g.codigoInvitacion || '').trim().toUpperCase() === cleanCode
+    );
+
+    if (!targetGroup) {
+      const msg = `No se encontró ninguna comunidad con el código "${cleanCode}". Verifica el código con el administrador.`;
+      announce(msg, 'assertive');
+      return { success: false, error: msg };
+    }
+
+    if (currentUser.grupoId === targetGroup.id) {
+      const msg = `Ya perteneces a la comunidad "${targetGroup.nombre}".`;
+      announce(msg, 'polite');
+      return { success: false, error: msg };
+    }
+
+    requestJoinGroup(targetGroup.id);
+    return { success: true, group: targetGroup };
   };
 
   // 2. Crear una nueva comunidad
@@ -240,6 +388,18 @@ export const AuthGroupProvider = ({ children }) => {
     }
   };
 
+  // 3.b Abrir modal para ceder liderazgo principal SIN salir del grupo
+  const openTransferLeadershipModal = () => {
+    if (!currentGroup || !isPrimaryAdmin) return;
+    if (otherMembers.length === 0) {
+      announce('No hay otros miembros en la comunidad a quienes ceder el liderazgo.', 'assertive');
+      return;
+    }
+    setPendingAction({ type: 'transfer_only' });
+    setIsSuccessionModalOpen(true);
+    announce('Selecciona al miembro que recibirá el liderazgo principal de la comunidad.', 'polite');
+  };
+
   // 4. Confirmación del aviso (miembro regular, o administrador único: el grupo se cierra)
   const confirmGroupSwitch = () => {
     performExit(pendingAction);
@@ -257,7 +417,7 @@ export const AuthGroupProvider = ({ children }) => {
     announce('Cesión de administración cancelada. Sigues siendo el administrador.', 'polite');
   };
 
-  // 5. Cesión de administración (SuccessionModal) y salida
+  // 5. Cesión de administración (SuccessionModal) y salida (o solo transferencia si es transfer_only)
   const transferAdminRoleAndLeave = (successorId) => {
     if (!currentGroup || !isAdmin) return;
 
@@ -270,7 +430,7 @@ export const AuthGroupProvider = ({ children }) => {
     const action = pendingAction;
     performExit(action, successor ? successor.id : null);
 
-    if (successor) {
+    if (successor && action?.type !== 'transfer_only') {
       announce(`El rol de Administrador ha sido transferido a ${successor.nombre}. Has salido del grupo anterior.`, 'assertive');
     }
   };
@@ -281,7 +441,7 @@ export const AuthGroupProvider = ({ children }) => {
     transferAdminRoleAndLeave(otherMembers[0]?.id ?? null);
   };
 
-  /* ------------------ Acciones del Administrador (solicitudes) ------------------ */
+  /* ------------------ Acciones del Administrador (solicitudes y miembros) ------------------ */
   const approveJoinRequest = (applicantId) => {
     if (!isAdmin || !currentGroup) return;
 
@@ -302,15 +462,23 @@ export const AuthGroupProvider = ({ children }) => {
       return;
     }
 
-    setGroups(groups.map(g =>
-      g.id === currentGroup.id
-        ? {
-            ...g,
-            solicitudesPendientes: g.solicitudesPendientes.filter(a => a.id !== applicantId),
-            miembros: [...g.miembros, { ...applicant, rol: 'estudiante' }]
-          }
-        : g
-    ));
+    // Limpiar también cualquier solicitud que ese estudiante tuviera en otros grupos
+    const nextGroups = groups.map(g => {
+      if (g.id === currentGroup.id) {
+        return {
+          ...g,
+          solicitudesPendientes: (g.solicitudesPendientes || []).filter(a => a.id !== applicantId),
+          miembros: [...g.miembros, { id: applicant.id, nombre: applicant.nombre, email: applicant.email, rol: 'estudiante' }]
+        };
+      }
+      return {
+        ...g,
+        solicitudesPendientes: (g.solicitudesPendientes || []).filter(a => a.id !== applicantId)
+      };
+    });
+
+    setGroups(nextGroups);
+    storageService.updateUser({ id: applicant.id, grupoId: currentGroup.id, rol: 'estudiante' });
     announce(`Solicitud de ${applicant.nombre} aprobada. Ahora es miembro del grupo.`, 'polite');
   };
 
@@ -345,12 +513,152 @@ export const AuthGroupProvider = ({ children }) => {
     });
 
     setGroups(nextGroups);
+    storageService.updateUser({ id: memberId, rol: willBeAdmin ? 'admin' : 'estudiante' });
     announce(
       willBeAdmin
         ? `${target.nombre} ahora tiene privilegios de Administrador en el grupo.`
         : `Se han removido los privilegios de Administrador a ${target.nombre}.`,
       'polite'
     );
+  };
+
+  // Expulsar a un miembro del grupo (solo administradores, no se puede expulsar al creador principal)
+  const removeMemberFromGroup = (memberId) => {
+    if (!currentGroup || !isAdmin) return;
+    if (memberId === currentGroup.adminId) {
+      announce('No se puede expulsar al administrador principal del grupo.', 'assertive');
+      return;
+    }
+    if (memberId === currentUser?.id) {
+      requestLeaveGroup();
+      return;
+    }
+
+    const target = currentGroup.miembros.find(m => m.id === memberId);
+    if (!target) return;
+
+    const nextGroups = groups.map(g => {
+      if (g.id !== currentGroup.id) return g;
+      return {
+        ...g,
+        miembros: g.miembros.filter(m => m.id !== memberId)
+      };
+    });
+
+    setGroups(nextGroups);
+    storageService.updateUser({ id: memberId, grupoId: null, rol: 'estudiante' });
+    announce(`${target.nombre} ha sido retirado de la comunidad ${currentGroup.nombre}.`, 'assertive');
+  };
+
+  // Actualizar datos generales del grupo actual (nombre, descripción, código de invitación)
+  const updateCurrentGroup = ({ nombre, descripcion, codigoInvitacion }) => {
+    if (!currentGroup || !isAdmin) return { success: false };
+    const cleanName = (nombre || '').trim();
+    const cleanCode = (codigoInvitacion || '').trim().toUpperCase();
+
+    if (!cleanName) {
+      announce('El nombre de la comunidad no puede estar vacío.', 'assertive');
+      return { success: false };
+    }
+
+    const nextGroups = groups.map(g => {
+      if (g.id !== currentGroup.id) return g;
+      return {
+        ...g,
+        nombre: cleanName,
+        descripcion: (descripcion || '').trim(),
+        codigoInvitacion: cleanCode || g.codigoInvitacion
+      };
+    });
+
+    setGroups(nextGroups);
+    announce(`Datos de la comunidad "${cleanName}" actualizados correctamente.`, 'polite');
+    return { success: true };
+  };
+
+  // Actualizar perfil del usuario autenticado (nombre y/o contraseña)
+  const updateMyProfile = ({ nombre, password }) => {
+    if (!currentUser) return { success: false, error: 'No hay sesión activa.' };
+    const cleanName = (nombre || '').trim();
+    if (!cleanName) {
+      announce('El nombre no puede estar vacío.', 'assertive');
+      return { success: false, error: 'El nombre no puede estar vacío.' };
+    }
+    if (password && password.length < 4) {
+      announce('La nueva contraseña debe tener al menos 4 caracteres.', 'assertive');
+      return { success: false, error: 'La contraseña debe tener al menos 4 caracteres.' };
+    }
+
+    const updatedUser = {
+      ...currentUser,
+      nombre: cleanName,
+      ...(password ? { password } : {})
+    };
+
+    // Sincronizar también el nombre dentro de los miembros y solicitudes de los grupos
+    const nextGroups = groups.map(g => ({
+      ...g,
+      miembros: (g.miembros || []).map(m => (m.id === currentUser.id ? { ...m, nombre: cleanName } : m)),
+      solicitudesPendientes: (g.solicitudesPendientes || []).map(s =>
+        s.id === currentUser.id ? { ...s, nombre: cleanName } : s
+      )
+    }));
+
+    setGroups(nextGroups);
+    setCurrentUser(updatedUser);
+    storageService.updateUser(updatedUser);
+    announce(`Perfil actualizado correctamente. Nombre actual: ${cleanName}.`, 'polite');
+    return { success: true };
+  };
+
+  // Cambio rápido de cuenta en 1 clic para demostraciones en vivo
+  const quickSwitchAccount = (accountIdOrUsername) => {
+    const allUsers = storageService.getUsers();
+    const target = allUsers.find(
+      u => u.id === accountIdOrUsername || u.username === accountIdOrUsername
+    );
+    if (!target) return { success: false };
+
+    const resolved = resolveUserMembership(target, groups);
+    setCurrentUser(resolved);
+    setPendingAction(null);
+    setIsSwitchWarningOpen(false);
+    setIsSuccessionModalOpen(false);
+    announce(`Cambiado rápidamente a la cuenta ${resolved.nombre} (${resolved.username}).`, 'polite');
+    return { success: true, user: resolved };
+  };
+
+  // Cargar escenario de demostración completo para sustentación
+  const loadDemoData = (autoLoginUsername = 'admin1') => {
+    const { users: demoUsers, groups: demoGroups } = storageService.loadDemoScenario();
+    setGroups(demoGroups);
+
+    const targetUser =
+      (autoLoginUsername && demoUsers.find(u => u.username === autoLoginUsername)) ||
+      (currentUser && demoUsers.find(u => u.id === currentUser.id)) ||
+      demoUsers[0];
+
+    const resolved = resolveUserMembership(targetUser, demoGroups);
+    setCurrentUser(resolved);
+    window.dispatchEvent(new CustomEvent('cal_estudiantil_data_reload'));
+    announce(
+      `Escenario de demostración cargado con éxito. Conectado como ${resolved.nombre} en la comunidad Ingeniería de Software.`,
+      'assertive'
+    );
+    return { success: true };
+  };
+
+  // Reiniciar el sistema en blanco (7 cuentas sin grupos ni tareas)
+  const resetSystemData = () => {
+    const { users: cleanUsers, groups: cleanGroups } = storageService.resetAllData();
+    setGroups(cleanGroups);
+    if (currentUser) {
+      const refreshed = cleanUsers.find(u => u.id === currentUser.id) || null;
+      setCurrentUser(refreshed ? { ...refreshed, grupoId: null } : null);
+    }
+    window.dispatchEvent(new CustomEvent('cal_estudiantil_data_reload'));
+    announce('Datos reiniciados en blanco. Las 7 cuentas base están listas sin grupos ni tareas.', 'assertive');
+    return { success: true };
   };
 
   // Grupo "destino" que se muestra en los diálogos de advertencia
@@ -374,9 +682,19 @@ export const AuthGroupProvider = ({ children }) => {
       isAdmin,
       isPrimaryAdmin,
       toggleMemberAdminRole,
+      removeMemberFromGroup,
+      updateCurrentGroup,
+      updateMyProfile,
+      quickSwitchAccount,
+      loadDemoData,
+      resetSystemData,
       requestJoinGroup,
+      sendJoinRequest,
+      cancelJoinRequest,
+      joinGroupByCode,
       createNewGroup,
       requestLeaveGroup,
+      openTransferLeadershipModal,
       confirmGroupSwitch,
       cancelGroupSwitch,
       cancelSuccession,

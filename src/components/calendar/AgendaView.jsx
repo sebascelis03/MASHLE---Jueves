@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import { useTasks } from '../../context/TaskContext';
 import { TaskCard } from '../tasks/TaskCard';
 import { useAuthGroup } from '../../context/AuthGroupContext';
-import { CheckSquare, Clock, AlertTriangle, Plus, LayoutGrid, List } from 'lucide-react';
+import { CheckSquare, Clock, AlertTriangle, Plus, LayoutGrid, List, Calendar, Users, User } from 'lucide-react';
 
-export const AgendaView = () => {
+export const AgendaView = ({ fromCalendarView = false }) => {
   const { 
     filteredTasks, 
     subjects, 
     filterSubject, 
     setFilterSubject,
+    filterPriority,
+    setFilterPriority,
+    selectedDate,
     setIsTaskModalOpen,
     setEditingTask,
     tasks,
@@ -20,31 +23,46 @@ export const AgendaView = () => {
 
   // Modo de visualización: 'scrum' (Tablero Scrum) o 'list' (Lista)
   const [viewMode, setViewMode] = useState('scrum');
-  // Filtro personal del estudiante: 'all' | 'my_pending' | 'my_done'
+  // Criterio de agrupación del Tablero Scrum:
+  // 'personal' (agrupa por el avance individual del usuario actual) | 'official' (agrupa por el estado oficial del salón)
+  const [boardCriteria, setBoardCriteria] = useState('personal');
+  // Filtro personal del estudiante: 'all' | 'pendiente' | 'en_progreso' | 'finalizada'
   const [personalFilter, setPersonalFilter] = useState('all');
+  // Filtro por fecha seleccionada en el calendario ('all' | 'selected_date')
+  const [dateScope, setDateScope] = useState('all');
+
+  // Función que resuelve en qué columna Scrum cae una tarea según el modo activo
+  const getEffectiveStatus = (task) => {
+    if (boardCriteria === 'official') {
+      return task.estado || 'pendiente';
+    }
+    return getMyProgress(task.id).estadoPersonal;
+  };
 
   const total = tasks.length;
-  const pendingCount = tasks.filter(t => t.estado === 'pendiente').length;
-  const inProgressCount = tasks.filter(t => t.estado === 'en_progreso').length;
-  const completedCount = tasks.filter(t => t.estado === 'finalizada').length;
+  const pendingCount = tasks.filter(t => getEffectiveStatus(t) === 'pendiente').length;
+  const inProgressCount = tasks.filter(t => getEffectiveStatus(t) === 'en_progreso').length;
+  const completedCount = tasks.filter(t => getEffectiveStatus(t) === 'finalizada').length;
+  const selectedDateCount = tasks.filter(t => t.fechaEntrega === selectedDate).length;
 
   const handleCreateNew = () => {
     setEditingTask(null);
     setIsTaskModalOpen(true);
   };
 
-  // Filtrado final aplicando también el estado individual si está activo
+  // Filtrado final aplicando estado individual y alcance de fecha seleccionada si está activo
   const displayedTasks = filteredTasks.filter(task => {
+    if (dateScope === 'selected_date' && task.fechaEntrega !== selectedDate) {
+      return false;
+    }
     if (personalFilter === 'all') return true;
     const progress = getMyProgress(task.id);
-    if (personalFilter === 'my_done') return progress.realizada;
-    if (personalFilter === 'my_pending') return !progress.realizada;
-    return true;
+    return progress.estadoPersonal === personalFilter;
   });
 
-  const pendingTasks = displayedTasks.filter(t => t.estado === 'pendiente');
-  const inProgressTasks = displayedTasks.filter(t => t.estado === 'en_progreso');
-  const completedTasks = displayedTasks.filter(t => t.estado === 'finalizada');
+  const pendingTasks = displayedTasks.filter(t => getEffectiveStatus(t) === 'pendiente');
+  const inProgressTasks = displayedTasks.filter(t => getEffectiveStatus(t) === 'en_progreso');
+  const completedTasks = displayedTasks.filter(t => getEffectiveStatus(t) === 'finalizada');
 
   return (
     <section className="agenda-section" aria-label="Lista y progresión de tareas escolares">
@@ -56,7 +74,7 @@ export const AgendaView = () => {
         </div>
         <div className="stat-card stat-pending">
           <span className="stat-label">
-            <Clock size={14} aria-hidden="true" /> Pendientes
+            <Clock size={14} aria-hidden="true" /> Por Realizar
           </span>
           <span className="stat-value">{pendingCount}</span>
         </div>
@@ -103,6 +121,51 @@ export const AgendaView = () => {
             </button>
           </div>
 
+          {/* Conmutador para Administrador: agrupar Tablero Scrum por Mi Avance vs. Estado Oficial */}
+          {isAdmin && (
+            <div className="view-mode-toggle" role="group" aria-label="Criterio de columnas del tablero">
+              <button
+                type="button"
+                className={`btn btn-sm ${boardCriteria === 'personal' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setBoardCriteria('personal')}
+                aria-pressed={boardCriteria === 'personal'}
+                title="Organizar columnas según mi propio avance"
+              >
+                <User size={14} aria-hidden="true" />
+                <span>Mi Avance</span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm ${boardCriteria === 'official' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setBoardCriteria('official')}
+                aria-pressed={boardCriteria === 'official'}
+                title="Organizar columnas según el estado oficial del grupo"
+              >
+                <Users size={14} aria-hidden="true" />
+                <span>Estado Oficial</span>
+              </button>
+            </div>
+          )}
+
+          {/* Conmutador para filtrar por el día seleccionado en el calendario */}
+          {(fromCalendarView || selectedDate) && (
+            <button
+              type="button"
+              className={`btn btn-sm ${dateScope === 'selected_date' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setDateScope(prev => (prev === 'selected_date' ? 'all' : 'selected_date'))}
+              aria-pressed={dateScope === 'selected_date'}
+              aria-label={`Filtrar tareas para la fecha seleccionada ${selectedDate}`}
+            >
+              <Calendar size={14} aria-hidden="true" />
+              <span>
+                {dateScope === 'selected_date'
+                  ? `Solo ${selectedDate} (${selectedDateCount}) · Ver todas`
+                  : `Filtrar día ${selectedDate} (${selectedDateCount})`}
+              </span>
+            </button>
+          )}
+
+          {/* Filtro por Materia */}
           <div className="filter-item">
             <label htmlFor="filter-subject-select" className="sr-only">Filtrar por materia</label>
             <select
@@ -119,7 +182,24 @@ export const AgendaView = () => {
             </select>
           </div>
 
-          {/* Filtro personal de estudiante */}
+          {/* Filtro por Prioridad */}
+          <div className="filter-item">
+            <label htmlFor="filter-priority-select" className="sr-only">Filtrar por prioridad</label>
+            <select
+              id="filter-priority-select"
+              value={filterPriority}
+              onChange={(e) => setFilterPriority(e.target.value)}
+              className="select btn-sm"
+              aria-label="Filtrar por prioridad de tarea"
+            >
+              <option value="todas">Todas las Prioridades</option>
+              <option value="alta">🔥 Prioridad Alta</option>
+              <option value="media">⚡ Prioridad Media</option>
+              <option value="baja">📌 Prioridad Baja</option>
+            </select>
+          </div>
+
+          {/* Filtro personal de estudiante (3 estados) */}
           <div className="filter-item">
             <label htmlFor="filter-personal-select" className="sr-only">Filtrar por mi progreso personal</label>
             <select
@@ -130,8 +210,9 @@ export const AgendaView = () => {
               aria-label="Filtrar por mi seguimiento personal"
             >
               <option value="all">Todo mi seguimiento</option>
-              <option value="my_pending">✗ Solo mis tareas pendientes</option>
-              <option value="my_done">✓ Solo mis tareas realizadas</option>
+              <option value="pendiente">⏳ Mis tareas por realizar</option>
+              <option value="en_progreso">▶️ Mis tareas en progreso</option>
+              <option value="finalizada">✓ Mis tareas realizadas</option>
             </select>
           </div>
         </div>
@@ -153,29 +234,42 @@ export const AgendaView = () => {
       {displayedTasks.length === 0 ? (
         <div className="card empty-tasks-card" role="status">
           <p style={{ fontSize: '1.1rem', fontWeight: 600, margin: 0 }}>
-            🎉 No hay tareas que coincidan con los filtros seleccionados.
+            {dateScope === 'selected_date'
+              ? `📅 No hay tareas programadas para el día ${selectedDate}.`
+              : '🎉 No hay tareas que coincidan con los filtros seleccionados.'}
           </p>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0.5rem 0 1rem' }}>
             {isAdmin
               ? 'Puedes agregar una nueva tarea o cambiar el criterio de búsqueda.'
               : 'Cambia el criterio de búsqueda o espera a que el administrador publique nuevas tareas.'}
           </p>
-          {isAdmin && (
-            <button
-              type="button"
-              onClick={handleCreateNew}
-              className="btn btn-primary"
-            >
-              <Plus size={16} aria-hidden="true" />
-              <span>Crear una tarea ahora</span>
-            </button>
-          )}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {dateScope === 'selected_date' && (
+              <button
+                type="button"
+                onClick={() => setDateScope('all')}
+                className="btn btn-secondary"
+              >
+                <span>Ver todas las tareas del grupo</span>
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                className="btn btn-primary"
+              >
+                <Plus size={16} aria-hidden="true" />
+                <span>Crear una tarea ahora</span>
+              </button>
+            )}
+          </div>
         </div>
       ) : viewMode === 'scrum' ? (
         /* Tablero Scrum de 3 Columnas */
         <div className="scrum-board-grid" role="region" aria-label="Tablero Scrum de tareas">
           {/* Columna 1: Pendientes */}
-          <div className="scrum-column" role="region" aria-label={`Columna Pendientes con ${pendingTasks.length} tareas`}>
+          <div className="scrum-column" role="region" aria-label={`Columna Por Realizar con ${pendingTasks.length} tareas`}>
             <div className="scrum-column-header col-pending">
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Clock size={16} aria-hidden="true" />

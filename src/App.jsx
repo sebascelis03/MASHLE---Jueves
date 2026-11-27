@@ -11,6 +11,7 @@ import { ToastHost } from './components/a11y/ToastHost';
 import { PWAInstallBanner } from './components/common/PWAInstallBanner';
 
 import { AuthView } from './components/auth/AuthView';
+import { ProfileModal } from './components/auth/ProfileModal';
 import { CalendarGrid } from './components/calendar/CalendarGrid';
 import { AgendaView } from './components/calendar/AgendaView';
 import { SubjectsDirectoryView } from './components/subjects/SubjectsDirectoryView';
@@ -30,11 +31,14 @@ import {
   Plus, 
   GraduationCap, 
   Crown,
-  LogOut
+  LogOut,
+  ArrowRight,
+  User
 } from 'lucide-react';
 
 const MainLayout = () => {
-  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'community' | 'admin'
+  const [activeTab, setActiveTab] = useState('calendar'); // 'calendar' | 'agenda' | 'subjects' | 'community' | 'admin'
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const { currentGroup, currentUser, isAdmin, isAuthenticated, logout } = useAuthGroup();
   const { setIsTaskModalOpen, setEditingTask } = useTasks();
   const { announce } = useA11y();
@@ -79,9 +83,36 @@ const MainLayout = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAuthenticated, isAdmin, setIsTaskModalOpen, setEditingTask, announce]);
 
+  const TABS_ORDER = [
+    { id: 'calendar', label: 'Calendario', domId: 'tab-calendar' },
+    { id: 'agenda', label: 'Lista y Progresión', domId: 'tab-agenda' },
+    { id: 'subjects', label: 'Materias & WhatsApp', domId: 'tab-subjects' },
+    { id: 'community', label: 'Mi Comunidad', domId: 'tab-community' },
+    { id: 'admin', label: 'Panel de Administración', domId: 'tab-admin' }
+  ];
+
   const handleTabChange = (tabId, label) => {
     setActiveTab(tabId);
     announce(`Pestaña activa: ${label}`, 'polite');
+  };
+
+  const handleTabListKeyDown = (e) => {
+    const currentIndex = TABS_ORDER.findIndex(t => t.id === activeTab);
+    if (currentIndex === -1) return;
+
+    let nextIndex = null;
+    if (e.key === 'ArrowRight') nextIndex = (currentIndex + 1) % TABS_ORDER.length;
+    else if (e.key === 'ArrowLeft') nextIndex = (currentIndex - 1 + TABS_ORDER.length) % TABS_ORDER.length;
+    else if (e.key === 'Home') nextIndex = 0;
+    else if (e.key === 'End') nextIndex = TABS_ORDER.length - 1;
+
+    if (nextIndex !== null) {
+      e.preventDefault();
+      const nextTab = TABS_ORDER[nextIndex];
+      handleTabChange(nextTab.id, nextTab.label);
+      const btn = document.getElementById(nextTab.domId);
+      if (btn && btn.focus) btn.focus();
+    }
   };
 
   const openNewTaskModal = () => {
@@ -140,6 +171,17 @@ const MainLayout = () => {
 
               <button
                 type="button"
+                onClick={() => setIsProfileModalOpen(true)}
+                className="btn btn-secondary"
+                aria-label="Abrir mi perfil, cambiar rápidamente de cuenta o cargar datos demo"
+                title="Mi Perfil / Cambio Rápido de Cuenta"
+              >
+                <User size={16} aria-hidden="true" />
+                <span>Perfil / Demo</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={logout}
                 className="btn btn-secondary"
                 aria-label={`Cerrar sesión de ${currentUser?.nombre}`}
@@ -155,7 +197,7 @@ const MainLayout = () => {
         {/* Pestañas de Navegación Accesibles (solo si ha iniciado sesión) */}
         {isAuthenticated && (
           <nav className="tabs-nav" role="navigation" aria-label="Navegación principal de la aplicación">
-            <div className="tabs-list" role="tablist">
+            <div className="tabs-list" role="tablist" onKeyDown={handleTabListKeyDown}>
               <button
                 type="button"
                 role="tab"
@@ -236,13 +278,36 @@ const MainLayout = () => {
           <AuthView />
         ) : (
           <>
+            {/* Banner guía cuando el usuario autenticado aún no pertenece a un grupo */}
+            {!currentGroup && activeTab !== 'community' && (
+              <div className="card no-group-banner" role="status">
+                <div>
+                  <strong style={{ fontSize: '1.05rem', display: 'block', marginBottom: '0.2rem' }}>
+                    👋 Aún no perteneces a ninguna comunidad estudiantil
+                  </strong>
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
+                    Para registrar o ver tareas, materias y enlaces de WhatsApp, primero únete a un grupo existente o crea una nueva comunidad.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('community', 'Mi Comunidad')}
+                  className="btn btn-primary"
+                >
+                  <Users size={16} aria-hidden="true" />
+                  <span>Ir a Mi Comunidad</span>
+                  <ArrowRight size={15} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+
             {activeTab === 'calendar' && (
               <div role="tabpanel" id="panel-calendar" aria-labelledby="tab-calendar">
                 <div className="calendar-layout-view">
                   <CalendarGrid />
                   <div style={{ marginTop: '1.5rem' }}>
                     <h3 style={{ fontSize: '1.15rem', marginBottom: '0.75rem' }}>📋 Tareas del Día y Próximas</h3>
-                    <AgendaView />
+                    <AgendaView fromCalendarView />
                   </div>
                 </div>
               </div>
@@ -276,6 +341,11 @@ const MainLayout = () => {
             <TaskFormModal />
             <GroupWarningDialog />
             <SuccessionModal />
+            <ProfileModal
+              key={currentUser?.id || 'profile'}
+              isOpen={isProfileModalOpen}
+              onClose={() => setIsProfileModalOpen(false)}
+            />
           </>
         )}
       </main>
@@ -408,6 +478,16 @@ const MainLayout = () => {
           padding: 1.5rem 1.25rem;
           flex: 1;
           outline: none;
+        }
+        .no-group-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+          gap: 1rem;
+          margin-bottom: 1.25rem;
+          border-left: 5px solid var(--primary-500);
+          background: linear-gradient(135deg, var(--bg-surface), var(--bg-surface-elevated));
         }
         .app-footer {
           margin-top: auto;

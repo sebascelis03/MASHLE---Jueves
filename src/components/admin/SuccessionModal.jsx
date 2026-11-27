@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { FocusTrap } from '../a11y/FocusTrap';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { Crown, UserCheck, ShieldAlert, Check, UserX } from 'lucide-react';
@@ -14,31 +14,32 @@ export const SuccessionModal = () => {
     autoAssignSuccessorAndLeave
   } = useAuthGroup();
 
-  // Candidatos elegibles (excluyendo al admin saliente)
+  // Candidatos elegibles (excluyendo al admin actual)
   const eligibleMembers = currentGroup?.miembros.filter(m => m.id !== currentUser?.id) || [];
   const [selectedSuccessorId, setSelectedSuccessorId] = useState('');
 
-  // Reiniciar la selección cada vez que se abre el modal o cambia el grupo
-  useEffect(() => {
-    if (isSuccessionModalOpen) {
-      const candidates = currentGroup?.miembros.filter(m => m.id !== currentUser?.id) || [];
-      setSelectedSuccessorId(candidates[0]?.id || '');
-    }
-  }, [isSuccessionModalOpen, currentGroup?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
   if (!isSuccessionModalOpen || !currentGroup) return null;
+
+  const activeSuccessorId =
+    eligibleMembers.some(m => m.id === selectedSuccessorId)
+      ? selectedSuccessorId
+      : (eligibleMembers[0]?.id || '');
+
+  const isTransferOnly = pendingAction?.type === 'transfer_only';
 
   const reasonText =
     pendingAction?.type === 'join'
       ? `Para unirte a "${pendingAction.group.nombre}"`
       : pendingAction?.type === 'create'
         ? `Para crear la comunidad "${pendingAction.data?.nombre}"`
-        : 'Para retirarte del grupo';
+        : isTransferOnly
+          ? 'Para transferir el liderazgo principal permaneciendo en la comunidad'
+          : 'Para retirarte del grupo';
 
   const handleManualSuccession = (e) => {
     e.preventDefault();
-    if (!selectedSuccessorId && eligibleMembers.length > 0) return;
-    transferAdminRoleAndLeave(selectedSuccessorId);
+    if (!activeSuccessorId && eligibleMembers.length > 0) return;
+    transferAdminRoleAndLeave(activeSuccessorId);
   };
 
   const handleCancel = () => {
@@ -60,11 +61,13 @@ export const SuccessionModal = () => {
             </div>
             <div>
               <h2 id="succession-title" style={{ fontSize: '1.3rem', margin: 0 }}>
-                👑 Cesión y Sucesión de Administrador
+                {isTransferOnly ? '👑 Transferir Liderazgo Principal' : '👑 Cesión y Sucesión de Administrador'}
               </h2>
               <p id="succession-modal-desc" style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.2rem 0 0' }}>
-                {reasonText} debes <strong>transferir la administración</strong> de <strong>{currentGroup.nombre}</strong> a un compañero.
-                El grupo no puede quedar sin administrador.
+                {reasonText} debes <strong>designar al nuevo administrador</strong> de <strong>{currentGroup.nombre}</strong>.
+                {isTransferOnly
+                  ? ' Seguirás siendo miembro de la comunidad.'
+                  : ' El grupo no puede quedar sin administrador.'}
               </p>
             </div>
           </div>
@@ -96,7 +99,7 @@ export const SuccessionModal = () => {
 
                 <div className="candidates-list" role="radiogroup" aria-label="Miembros candidatos a administrador">
                   {eligibleMembers.map(member => {
-                    const isChecked = selectedSuccessorId === member.id;
+                    const isChecked = activeSuccessorId === member.id;
                     return (
                       <label 
                         key={member.id} 
@@ -128,34 +131,36 @@ export const SuccessionModal = () => {
               </fieldset>
 
               <div className="succession-actions">
-                <button
-                  type="button"
-                  onClick={autoAssignSuccessorAndLeave}
-                  className="btn btn-secondary"
-                  aria-label="Ceder el rol automáticamente al miembro con mayor antigüedad y salir"
-                  title="Asignación automática"
-                >
-                  <ShieldAlert size={16} aria-hidden="true" />
-                  <span>Asignación Automática</span>
-                </button>
+                {!isTransferOnly ? (
+                  <button
+                    type="button"
+                    onClick={autoAssignSuccessorAndLeave}
+                    className="btn btn-secondary"
+                    aria-label="Ceder el rol automáticamente al miembro con mayor antigüedad y salir"
+                    title="Asignación automática"
+                  >
+                    <ShieldAlert size={16} aria-hidden="true" />
+                    <span>Asignación Automática</span>
+                  </button>
+                ) : <span />}
 
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     type="button"
                     onClick={handleCancel}
                     className="btn btn-secondary"
-                    aria-label="Cancelar salida y conservar mi rol de administrador"
+                    aria-label="Cancelar y conservar mi rol de administrador"
                   >
-                    Permanecer
+                    Cancelar
                   </button>
                   <button
                     type="submit"
                     className="btn btn-primary"
-                    disabled={!selectedSuccessorId}
-                    aria-label="Confirmar cesión de rol y salir del grupo"
+                    disabled={!activeSuccessorId}
+                    aria-label={isTransferOnly ? "Confirmar transferencia de liderazgo principal" : "Confirmar cesión de rol y salir del grupo"}
                   >
                     <UserCheck size={16} aria-hidden="true" />
-                    <span>Ceder Rol y Salir</span>
+                    <span>{isTransferOnly ? 'Transferir Liderazgo' : 'Ceder Rol y Salir'}</span>
                   </button>
                 </div>
               </div>

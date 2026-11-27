@@ -28,7 +28,7 @@ function makeChunk(type, data) {
   return Buffer.concat([len, typeBuf, data, crcVal]);
 }
 
-function createPng(size, primaryColor, secondaryColor) {
+function createPng(size) {
   const sig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
@@ -44,7 +44,6 @@ function createPng(size, primaryColor, secondaryColor) {
   // Raw image data with filter byte 0 at start of each scanline
   const raw = Buffer.alloc(size * (1 + size * 4));
   let offset = 0;
-  const radius = size / 2;
   const cx = size / 2;
   const cy = size / 2;
 
@@ -53,7 +52,6 @@ function createPng(size, primaryColor, secondaryColor) {
     for (let x = 0; x < size; x++) {
       const dx = x - cx;
       const dy = y - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
       
       // Rounded card or icon shape
       const isInIcon = Math.abs(dx) < (size * 0.42) && Math.abs(dy) < (size * 0.42);

@@ -7,40 +7,62 @@ Registro cronológico e incremental de las decisiones arquitectónicas, iteracio
 ## 🕒 Hito 0: Decisiones Fundacionales del Proyecto (Histórico Consolidado)
 
 ### 0.1. Arquitectura Frontend y Persistencia Offline-First
-- **Contexto:** Se requería una aplicación rápida, instalable en dispositivos móviles/escritorio y funcional en entornos educativos con conectividad intermitente, sin depender de servidores externos complejos para las demostraciones del Proyecto de Grado.
-- **Decisión:** Construir una **PWA con React 19 + Vite 8 + `vite-plugin-pwa`** y una capa de persistencia desacoplada en `src/services/storageService.js` sobre `localStorage` con datos semilla preconfigurados.
-- **Resultado:** Carga instantánea, soporte offline mediante Service Worker y 3 cuentas mock listas para evaluar todos los flujos de rol.
+- **Decisión:** Construir una **PWA con React 19 + Vite 8 + `vite-plugin-pwa`** y una capa de persistencia desacoplada en `src/services/storageService.js` con 7 cuentas base (`admin1..3` y `user1..4`).
 
 ### 0.2. Suite de Accesibilidad Universal (WCAG 2.1 AA/AAA) y Calibrador Inicial
-- **Contexto:** El núcleo académico del proyecto de grado es la **Accesibilidad y Usabilidad**. No bastaba con agregar atributos ARIA aislados; los estudiantes con discapacidad visual, daltonismo o dificultades auditivas necesitaban calibrar su experiencia desde el primer momento.
-- **Decisión:**
-  - Implementar un **Asistente de Calibración (`A11yOnboardingModal.jsx`)** inspirado en la configuración inicial de consolas de videojuegos (calibración de brillo/contraste con símbolos de umbral, selector de daltonismo y lectura por voz, siempre con botón "Omitir").
-  - Crear `A11yControls.jsx` como barra/botón de ajuste rápido permanente.
-  - Garantizar triple codificación en estados de tareas (color + ícono + etiqueta textual) y soporte de teclado total (`FocusTrap`, `SkipLink`, `LiveAnnouncer`, `ToastHost` y atajos `Alt + N/C/L/M`).
+- **Decisión:** Implementar `A11yOnboardingModal.jsx` estilo consola, `A11yControls.jsx`, triple codificación en estados de tareas y soporte de teclado total (`FocusTrap`, `SkipLink`, `LiveAnnouncer`, `ToastHost` y atajos `Alt + N/C/L/M`).
 
 ### 0.3. Segregación de Permisos en Tareas (Oficiales vs. Progreso Individual)
-- **Contexto:** Si cualquier estudiante modificaba o borraba una tarea del grupo, afectaría a toda la clase.
-- **Decisión:** Separar el modelo de datos en dos niveles dentro de `TaskContext.jsx` y `storageService.js`:
-  1. **Tareas oficiales del grupo:** Solo el **Administrador** puede crearlas, editarlas o eliminarlas.
-  2. **Progreso y notas privadas por estudiante (`user_progress`):** Cada alumno marca su propio avance (*Pendiente*, *En Progreso*, *Finalizada*) y guarda notas personales sin alterar los datos de sus compañeros.
-
-### 0.4. Regla de Membresía Única y Protocolo Obligatorio de Sucesión
-- **Contexto:** Evitar que los estudiantes pertenezcan a múltiples cursos contradictorios o que un grupo quede sin administrador cuando su creador se retira.
-- **Decisión:**
-  - Aplicar la regla **1 Estudiante = 1 Grupo Activo** con advertencia explícita (`GroupWarningDialog.jsx` con `role="alertdialog"`).
-  - Bloquear la salida directa de un Administrador hasta que designe a un sucesor en `SuccessionModal.jsx` (o ejecute la sucesión asistida).
-
-### 0.5. Creación del Apartado `/boceto` para Sustentación Académica
-- **Contexto:** La docente solicitó evidencia clara de la evolución del software (*"El Antes vs. El Después"*).
-- **Decisión:** Incorporar la ruta `/boceto` (`src/components/boceto/BocetoView.jsx` y `boceto.css`) dentro de la misma aplicación y en la rama `boceto`. Esta vista muestra los mismos módulos funcionales con los títulos reales de la plataforma, pero con estética de construcción inicial (cuadrícula de 1px, tablas básicas y sin herramientas de accesibilidad), permitiendo alternar en un clic con la versión final accesible.
+- **Decisión:** Separar tareas oficiales creadas por el Administrador del seguimiento personal y notas privadas de cada estudiante (`user_progress`).
 
 ---
 
 ## 🕒 Hito 1: Estandarización Documental y Reglas Operativas (2026-11-26)
 
 ### 1.1. Adopción de `.docs/` como Fuente Única de Verdad
-- **Contexto:** Existían documentos sueltos en una carpeta `docs/` sin estructura estandarizada de seguimiento de tareas ni bitácora de decisiones.
-- **Decisión:**
-  1. Establecer las **3 Reglas Operativas Estrictas** en `.docs/01_reglas/REGLAS_OPERATIVAS.md` (Planificación obligatoria previa numerada con aprobación del usuario, prohibición absoluta de ejecutar comandos `git` por parte del agente y política de orden/compactación).
-  2. Migrar y consolidar toda la documentación previa dentro de las 6 subcarpetas oficiales de `.docs/`.
-  3. Eliminar la antigua carpeta `docs/` para evitar duplicidad de fuentes.
+- **Decisión:** Establecer las 3 Reglas Operativas Estrictas, consolidar la documentación en las 6 subcarpetas de `.docs/` y crear la rama de desarrollo `dev-sebas`.
+
+---
+
+## 🕒 Hito 2: Cierre Funcional de Comunidades, Administración y Filtro de Calendario (2026-11-26)
+
+### 2.1. Flujo Completo de Solicitudes de Acceso, Código de Invitación y Transferencia de Liderazgo
+- **Solución implementada:** `sendJoinRequest`, `cancelJoinRequest`, `joinGroupByCode`, `openTransferLeadershipModal` (`transfer_only`), `removeMemberFromGroup`, filtro por fecha seleccionada en `AgendaView.jsx` y banner guía cuando `!currentGroup`.
+
+---
+
+## 🕒 Hito 3: Fase 1 — Cierre del Funcionamiento Puro y Hoja de Ruta en 4 Fases con Firebase (2026-11-26)
+
+### 3.1. Tablero Scrum Reactivo de 3 Estados por Estudiante, Desglose Nominal Admin y Prioridades
+- **Solución implementada:**
+  - Progreso individual de 3 estados (`pendiente`, `en_progreso`, `finalizada`) sincronizado con las columnas del Tablero Scrum + conmutador *"Mi Avance / Estado Oficial"* para el Admin.
+  - Desplegable nominal *"Ver estudiantes"* en cada `TaskCard.jsx` para el Administrador.
+  - Insignias de prioridad (*Alta*, *Media*, *Baja*), ordenamiento cronológico automático, filtro por prioridad y edición completa de grupo/materias en `GroupAdminPanel.jsx`.
+
+---
+
+## 🕒 Hito 4: Fase 2 — Pulido de Accesibilidad Universal y Calidad de Código (2026-11-26)
+
+### 4.1. Lectura en Voz Alta (`TTS`) Directa por Tarea y Navegación WAI-ARIA por Flechas
+- **Solución implementada:**
+  - Botón **"🔊 Escuchar tarea"** en cada `TaskCard.jsx` y conmutador rápido **"Voz (TTS)"** en `A11yControls.jsx`.
+  - Navegación con flechas (`←`, `→`, `↑`, `↓`, `Home`, `End`) en `CalendarGrid.jsx` y `App.jsx`, y limpieza de warnings de linter.
+
+---
+
+## 🕒 Hito 5: Fase 3 — Perfil de Estudiante, Cambio Rápido de Cuenta, Escenario Demo en 1 Clic y `README.md` (2026-11-26)
+
+### 5.1. Creación de `ProfileModal.jsx` y Generador de Escenario Demo (`loadDemoScenario`)
+- **Solución implementada:** Modal de perfil con edición de nombre/contraseña, cambio en 1 clic entre las 7 cuentas (`quickSwitchAccount`), cargador de escenario académico de sustentación con fechas dinámicas en el mes actual y `README.md` oficial en la raíz.
+
+---
+
+## 🕒 Hito 6: Fase 4 — Integración Híbrida con Firebase Cloud Firestore (`mashle-beta777`) y Hosting PWA (2026-11-26)
+
+### 6.1. Arquitectura Dual-Mode (Cloud Firestore Realtime + `localStorage` Fallback)
+- **Contexto:** Se requería conectar el proyecto a Firebase (`mashle-beta777`) para sincronización multi-dispositivo en tiempo real y despliegue en Firebase Hosting, pero garantizando que si en la sustentación se presenta localmente o sin internet, la aplicación siga funcionando sin fallos.
+- **Solución:**
+  - Se creó `src/services/firebaseConfig.js` con las credenciales de `mashle-beta777` y suscripción `onSnapshot` sobre `mashle_app_state/global_state`.
+  - `storageService.js` guarda de forma síncrona en `localStorage` y replica asíncronamente en Firestore (`syncToCloud`). Al recibir cambios desde otro dispositivo, actualiza `localStorage` y dispara `cal_estudiantil_data_reload`.
+  - Se añadió el indicador en vivo **`☁️ Firebase Sync` / `💾 Modo Local`** en `A11yControls.jsx`.
+  - Se crearon `firebase.json` y `.firebaserc` para despliegue directo en Firebase Hosting.

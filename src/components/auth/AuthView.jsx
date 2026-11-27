@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useAuthGroup } from '../../context/AuthGroupContext';
 import { useA11y } from '../../context/A11yContext';
-import { LogIn, UserPlus, GraduationCap, Eye, EyeOff, AlertCircle, Key, User, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { LogIn, UserPlus, GraduationCap, Eye, EyeOff, AlertCircle, Key, User, ShieldCheck, CheckCircle2, Sparkles, RotateCcw } from 'lucide-react';
 
 export const AuthView = () => {
-  const { login, register, mockAccounts } = useAuthGroup();
+  const { login, register, mockAccounts, loadDemoData, resetSystemData } = useAuthGroup();
   const { announce } = useA11y();
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -282,6 +282,38 @@ export const AuthView = () => {
                 </div>
               </button>
             ))}
+          </div>
+
+          {/* Botones de Escenario Demo para Sustentación */}
+          <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px dashed var(--border-normal)' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: '0.45rem', color: 'var(--text-main)' }}>
+              🎯 Modo Sustentación Académica (1 Clic):
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => loadDemoData('admin1')}
+                className="btn btn-sm btn-primary"
+                style={{ flex: 1, justifyContent: 'center' }}
+                aria-label="Cargar escenario de demostración completo e iniciar como Admin 1"
+              >
+                <Sparkles size={15} aria-hidden="true" />
+                <span>⚡ Cargar Demo &amp; Entrar</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  resetSystemData();
+                  setSuccessMsg('Datos reiniciados en blanco. Las 7 cuentas están listas sin grupos.');
+                }}
+                className="btn btn-sm btn-secondary"
+                aria-label="Reiniciar todos los datos en blanco"
+                title="Dejar el sistema en blanco para crear todo desde cero"
+              >
+                <RotateCcw size={15} aria-hidden="true" />
+                <span>🧹 Limpiar Datos</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

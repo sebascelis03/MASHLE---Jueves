@@ -1,10 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useA11y } from '../../context/A11yContext';
-import { Eye, Type, Wifi, WifiOff, Keyboard } from 'lucide-react';
+import { FocusTrap } from './FocusTrap';
+import { Eye, Type, Wifi, WifiOff, Keyboard, Volume2, VolumeX, Cloud, HardDrive } from 'lucide-react';
 
 export const A11yControls = () => {
-  const { altoContraste, fontSize, toggleAltoContraste, setFontSize, announce, openOnboarding } = useA11y();
+  const {
+    altoContraste,
+    fontSize,
+    lecturaVoz,
+    isSpeechSupported,
+    updateSettings,
+    speak,
+    stopSpeaking,
+    toggleAltoContraste,
+    setFontSize,
+    announce,
+    openOnboarding
+  } = useA11y();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isCloudSynced, setIsCloudSynced] = useState(false);
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
   useEffect(() => {
@@ -14,17 +28,34 @@ export const A11yControls = () => {
     };
     const handleOffline = () => {
       setIsOnline(false);
+      setIsCloudSynced(false);
       announce('Conexión perdida. Estás usando la aplicación en modo sin conexión.', 'assertive');
+    };
+    const handleCloudStatus = (e) => {
+      setIsCloudSynced(Boolean(e.detail?.connected));
     };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    window.addEventListener('cal_estudiantil_cloud_status', handleCloudStatus);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('cal_estudiantil_cloud_status', handleCloudStatus);
     };
   }, [announce]);
+
+  const handleToggleTTS = () => {
+    const next = !lecturaVoz;
+    updateSettings({ lecturaVoz: next });
+    if (next) {
+      speak('Lectura en voz alta activada.', { force: true });
+    } else {
+      stopSpeaking();
+      announce('Lectura en voz alta desactivada.', 'polite');
+    }
+  };
 
   return (
     <div className="a11y-controls-bar" role="region" aria-label="Controles de accesibilidad y estado de red">
@@ -49,6 +80,31 @@ export const A11yControls = () => {
           )}
         </div>
 
+        {/* Indicador Híbrido Firebase Cloud / Respaldo Local */}
+        <div
+          className={`network-badge ${isCloudSynced && isOnline ? 'online' : ''}`}
+          style={{
+            backgroundColor: isCloudSynced && isOnline ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-surface)',
+            color: isCloudSynced && isOnline ? '#60a5fa' : 'var(--text-muted)',
+            border: '1px solid var(--border-normal)'
+          }}
+          role="status"
+          aria-label={isCloudSynced && isOnline ? 'Sincronización con Firebase Cloud activa' : 'Almacenamiento en modo local'}
+          title={isCloudSynced && isOnline ? 'Conectado en tiempo real a Firebase (mashle-beta777)' : 'Respaldo Local Activo (localStorage)'}
+        >
+          {isCloudSynced && isOnline ? (
+            <>
+              <Cloud size={14} aria-hidden="true" />
+              <span>Firebase Sync</span>
+            </>
+          ) : (
+            <>
+              <HardDrive size={14} aria-hidden="true" />
+              <span>Modo Local</span>
+            </>
+          )}
+        </div>
+
         {/* Reabrir el asistente de calibración (estilo consola) */}
         <button
           type="button"
@@ -60,6 +116,21 @@ export const A11yControls = () => {
           <span aria-hidden="true">🎮</span>
           <span>Calibrar Accesibilidad</span>
         </button>
+
+        {/* Botón Rápido de Lectura en Voz Alta (TTS) */}
+        {isSpeechSupported && (
+          <button
+            type="button"
+            onClick={handleToggleTTS}
+            className={`btn btn-sm ${lecturaVoz ? 'btn-primary' : 'btn-secondary'}`}
+            aria-pressed={Boolean(lecturaVoz)}
+            aria-label={lecturaVoz ? "Desactivar lectura en voz alta (TTS)" : "Activar lectura en voz alta (TTS)"}
+            title="Alternar lectura en voz alta"
+          >
+            {lecturaVoz ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
+            <span>{lecturaVoz ? "Voz Activa" : "Voz (TTS)"}</span>
+          </button>
+        )}
 
         {/* Botón Alto Contraste */}
         <button
@@ -113,6 +184,7 @@ export const A11yControls = () => {
           type="button"
           onClick={() => setShowShortcutsModal(prev => !prev)}
           className="btn btn-sm btn-secondary"
+          aria-expanded={showShortcutsModal}
           aria-label="Ver atajos de teclado accesibles"
           title="Atajos de Teclado"
         >
@@ -122,26 +194,34 @@ export const A11yControls = () => {
       </div>
 
       {showShortcutsModal && (
-        <div className="shortcuts-tooltip card" role="dialog" aria-label="Lista de atajos de teclado">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-            <h3 style={{ fontSize: '0.95rem', margin: 0 }}>⌨️ Atajos de Teclado</h3>
-            <button 
-              type="button" 
-              className="btn btn-sm btn-secondary" 
-              onClick={() => setShowShortcutsModal(false)}
-              aria-label="Cerrar ventana de atajos"
-            >
-              ✕
-            </button>
+        <FocusTrap
+          role="dialog"
+          ariaLabel="Lista de atajos de teclado"
+          onClose={() => setShowShortcutsModal(false)}
+        >
+          <div className="shortcuts-tooltip card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '0.95rem', margin: 0 }}>⌨️ Atajos de Teclado</h3>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-secondary" 
+                onClick={() => setShowShortcutsModal(false)}
+                aria-label="Cerrar ventana de atajos"
+              >
+                ✕
+              </button>
+            </div>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
+              <li><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd>: Moverse entre días del Calendario y pestañas</li>
+              <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
+              <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
+              <li><kbd>Alt + L</kbd>: Ir a vista Tablero &amp; Lista</li>
+              <li><kbd>Alt + M</kbd>: Ir a vista Materias &amp; WhatsApp</li>
+              <li><kbd>Escape</kbd>: Cerrar cualquier ventana o modal</li>
+            </ul>
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '0.825rem', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <li><kbd>Tab</kbd> / <kbd>Shift + Tab</kbd>: Navegar elementos</li>
-            <li><kbd>Alt + N</kbd>: Crear nueva tarea escolar (administrador)</li>
-            <li><kbd>Alt + C</kbd>: Ir a vista Calendario</li>
-            <li><kbd>Alt + L</kbd>: Ir a vista Lista / Agenda</li>
-            <li><kbd>Escape</kbd>: Cerrar cualquier ventana o modal</li>
-          </ul>
-        </div>
+        </FocusTrap>
       )}
 
       <style>{`
@@ -220,7 +300,7 @@ export const A11yControls = () => {
           top: 100%;
           right: 1rem;
           margin-top: 0.5rem;
-          width: 290px;
+          width: 330px;
           z-index: 100;
           box-shadow: var(--shadow-lg);
           border: 1px solid var(--border-focus);

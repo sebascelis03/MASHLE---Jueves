@@ -5,7 +5,9 @@ export const FocusTrap = ({ children, onClose, active = true, role = 'dialog', a
   const previouslyFocusedElementRef = useRef(null);
   // onClose en ref: evita reiniciar el atrapamiento (y robar el foco) en cada render del padre
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!active) return;
