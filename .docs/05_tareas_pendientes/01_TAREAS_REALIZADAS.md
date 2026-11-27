@@ -28,3 +28,5 @@ Listado simplificado de los módulos y entregables ya completados en el proyecto
    - Creación de `src/services/firebaseConfig.js` y sincronización en tiempo real (`onSnapshot` + `setDoc`) en `storageService.js` con respaldo local ininterrumpido.
    - Indicador en vivo **`☁️ Firebase Sync` / `💾 Modo Local`** en `A11yControls.jsx`.
    - Configuración de `firebase.json` y `.firebaserc` para despliegue en Firebase Hosting.
+9. **Plan de Implementación #7 — Registro Oficial de Exportación (`.docs/07_registro_exportacion/`):**
+   - Creación de `.docs/07_registro_exportacion/REGISTRO_EXPORTACION_ACTUAL.md` con todos los detalles técnicos, fecha, hora, URLs de Firebase y módulos exportados.

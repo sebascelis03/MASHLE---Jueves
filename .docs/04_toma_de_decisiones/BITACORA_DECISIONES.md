@@ -66,3 +66,10 @@ Registro cronológico e incremental de las decisiones arquitectónicas, iteracio
   - `storageService.js` guarda de forma síncrona en `localStorage` y replica asíncronamente en Firestore (`syncToCloud`). Al recibir cambios desde otro dispositivo, actualiza `localStorage` y dispara `cal_estudiantil_data_reload`.
   - Se añadió el indicador en vivo **`☁️ Firebase Sync` / `💾 Modo Local`** en `A11yControls.jsx`.
   - Se crearon `firebase.json` y `.firebaserc` para despliegue directo en Firebase Hosting.
+
+---
+
+## 🕒 Hito 7: Creación del Registro Oficial de Exportación en `.docs/07_registro_exportacion/` (2026-11-26)
+
+### 7.1. Certificación de Versión Exportada (`v1.0.0-production`)
+- **Decisión:** Incorporar la subcarpeta `.docs/07_registro_exportacion/` con el archivo `REGISTRO_EXPORTACION_ACTUAL.md` documentando la versión exportada el **26 de noviembre de 2026 (19:13 UTC-5)**, sus artefactos PWA compilados en `dist/`, las URLs de Firebase Hosting (`https://mashle-beta777.web.app`), la base de datos Cloud Firestore y el inventario completo de las Fases 1 a 4.

@@ -21,7 +21,7 @@ Este documento constituye la norma permanente e inquebrantable de trabajo para e
 ---
 
 ## 3. 🗂️ Política de Compactación y Orden Documental (`.docs/`)
-- **Fuente Única de Verdad:** Toda la documentación del proyecto vive exclusivamente dentro de la carpeta raíz `.docs/`, dividida estrictamente en 6 subcarpetas temáticas:
+- **Fuente Única de Verdad:** Toda la documentación del proyecto vive exclusivamente dentro de la carpeta raíz `.docs/`, dividida estrictamente en subcarpetas temáticas numeradas:
   1. `.docs/01_reglas/` → `REGLAS_OPERATIVAS.md`
   2. `.docs/02_idea_general/` → `DOCUMENTO_MAESTRO.md`
   3. `.docs/03_referencia_ui_diseno/` → Guías estéticas, paleta de colores, tipografía, accesibilidad visual y referencias de vistas/componentes.
@@ -31,4 +31,5 @@ Este documento constituye la norma permanente e inquebrantable de trabajo para e
      - `02_TAREA_ACTIVA.md` (el foco único en el que se trabaja actualmente).
      - `03_TAREAS_FUTURAS.md` (pendientes a futuro y hallazgos detectados que no se tocarán por el momento).
   6. `.docs/06_planes_implementacion/` → Almacén exclusivo de cada Plan de Implementación numerado (`PLAN_01_...md`, `PLAN_02_...md`, etc.).
+  7. `.docs/07_registro_exportacion/` → `REGISTRO_EXPORTACION_ACTUAL.md` (certificación detallada de cada versión exportada/desplegada con fecha, hora, URLs y módulos incluidos).
 - **Compactación periódica bajo instrucción:** Cuando el usuario lo indique explícitamente, los planes de implementación antiguos o ya superados en `.docs/06_planes_implementacion/` se compactarán en un único archivo Markdown histórico para evitar acumulación y desorden.
